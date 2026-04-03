@@ -1,0 +1,16 @@
+[project]
+name = "up-skill"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "mlx-whisper",
+    "openai-whisper>=20250625",
+    "pypinyin>=0.55.0",
+    "yt-dlp>=2026.3.17",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

@@ -1,0 +1,12 @@
+# 生成的 UP 主 Skill（本地数据，不提交）
+ups/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 缓存
+.cache/
