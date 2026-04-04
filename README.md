@@ -99,6 +99,12 @@ cd ~/.claude/skills/up-skill && uv sync
 
 按提示输入 UP 主名称、基本信息（如 `B站 科技区 百万粉 男`）、风格标签，然后提供素材来源。所有字段均可跳过，仅凭描述也能生成。
 
+也可以直接给主页链接，跳过手动输入：
+
+```
+/create-up https://space.bilibili.com/946974
+```
+
 完成后用 `/{slug}` 调用该 UP 主 Skill。
 
 ### 管理命令
