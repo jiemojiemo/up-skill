@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
+    "faster-whisper>=1.1.0",
     "mlx-whisper",
     "openai-whisper>=20250625",
     "pypinyin>=0.55.0",

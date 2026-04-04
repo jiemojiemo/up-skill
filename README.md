@@ -9,15 +9,13 @@
 - **Production Style** — 标题套路、开头 Hook、口播节奏
 - **Brand Guardrails** — 商业边界、话题红线、翻车风险
 
-生成后可以用六种方式调用：
+生成后可以用四种方式调用：
 
 ```
 /{slug}              → 像他聊天
 /{slug}-brainstorm   → 像他做选题会
 /{slug}-script       → 像他写口播脚本
-/{slug}-comment      → 像他回复评论区
-/{slug}-live         → 像他接直播弹幕
-/{slug}-brand        → 检查内容像不像他
+/{slug}-check        → 检查内容是否符合他的风格边界
 ```
 
 ---
@@ -25,18 +23,25 @@
 ## 快速开始
 
 ```bash
-# 1. 安装
-git clone https://github.com/yourname/up-skill ~/.claude/skills/create-up
+# 方式 1：plugin install（推荐）
+claude plugin install up-skill
 
-# 2. 安装依赖
-cd ~/.claude/skills/create-up
-uv sync
+# 方式 2：plugin-dir 本地加载
+git clone https://github.com/yourname/up-skill
+claude --plugin-dir ./up-skill
 
-# 3. 在 Claude Code 中启动
-/create-up
+# 方式 3：手动安装
+git clone https://github.com/yourname/up-skill ~/.claude/plugins/up-skill
 ```
 
-然后告诉 Claude UP 主的主页链接，剩下的它来做。
+安装依赖：
+
+```bash
+cd <up-skill 目录>
+uv sync
+```
+
+然后在 Claude Code 中说 `/create-up`，告诉 Claude UP 主的主页链接，剩下的它来做。
 
 ---
 
@@ -57,8 +62,12 @@ uv sync
 
 ```
 up-skill/
-├── SKILL.md                    # skill 入口
-├── pyproject.toml              # uv 依赖管理
+├── .claude-plugin/
+│   ├── plugin.json             # 插件元数据
+│   └── marketplace.json        # marketplace 发布配置
+├── skills/
+│   └── up-skill/
+│       └── SKILL.md            # Skill 入口
 ├── prompts/                    # 分析和生成的 Prompt 模板
 │   ├── intake.md
 │   ├── persona_analyzer.md

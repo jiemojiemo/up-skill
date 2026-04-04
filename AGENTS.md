@@ -14,15 +14,20 @@
 
 ```
 up-skill/
-├── SKILL.md              # Claude Code skill 入口（name: create-up）
-├── prompts/              # 11 个 LLM prompt 模板（analyzer + builder 配对）
-├── tools/                # Python 工具
-│   ├── collector.py      # 素材采集（字幕/本地视频/链接/主页）
-│   ├── subtitle_parser.py # 字幕解析 → 纯文本
-│   └── skill_writer.py   # 写入 ups/{slug}/ 目录结构
-├── tests/                # 单测
-├── docs/                 # 文档和待办
-└── ups/                  # 生成的 Skill（gitignored）
+├── .claude-plugin/
+│   ├── plugin.json           # 插件元数据（name, version, description, author）
+│   └── marketplace.json      # marketplace 发布配置
+├── skills/
+│   └── up-skill/
+│       └── SKILL.md          # Skill 入口（name: create-up）
+├── prompts/                  # 11 个 LLM prompt 模板（analyzer + builder 配对）
+├── tools/                    # Python 工具
+│   ├── collector.py          # 素材采集（字幕/本地视频/链接/主页）
+│   ├── subtitle_parser.py    # 字幕解析 → 纯文本
+│   └── skill_writer.py       # 写入 ups/{slug}/ 目录结构
+├── tests/                    # 单测
+├── docs/                     # 文档和待办
+└── ups/                      # 生成的 Skill（gitignored）
 ```
 
 ## 约定
