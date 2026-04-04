@@ -105,8 +105,9 @@ allowed-tools: Read, Write, Edit, Bash
 2. 告知用户视频总数，询问要采集几个（建议至少 5-10 个，默认 20）
 3. 用户确认数量后，调用 `uv run --directory ${SKILL_DIR} python3 tools/collector.py --slug {slug} --space <url> --limit {用户指定数量} --yes`
 4. collector 会用 yt-dlp 列出视频 → 优先抓官方字幕 → 无字幕则下载音频 ASR
-5. 转录文本缓存到 `~/.up-skill/cache/{slug}/transcripts/`
-6. 采集完成后读取缓存目录中的文本，进入 Step 3 分析
+5. ⏱ 采集耗时取决于视频数量和字幕可用性：有官方字幕时很快（几秒/条），需要 ASR 转录时约等于视频时长。20 条视频预计 5-15 分钟，请设置足够的 timeout 并耐心等待
+6. 转录文本缓存到 `~/.up-skill/cache/{slug}/transcripts/`
+7. 采集完成后读取缓存目录中的文本，进入 Step 3 分析
 
 **最低要求**：至少提供 [A]、[D] 或 [E] 之一。原材料越多，四层分身越准确。
 
