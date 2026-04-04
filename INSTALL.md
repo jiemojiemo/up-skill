@@ -3,15 +3,7 @@
 ## 安装到 Claude Code
 
 ```bash
-# 方式 1：plugin install（推荐）
-claude plugin install up-skill
-
-# 方式 2：plugin-dir 本地加载
-git clone https://github.com/yourname/up-skill
-claude --plugin-dir ./up-skill
-
-# 方式 3：手动安装
-git clone https://github.com/yourname/up-skill ~/.claude/plugins/up-skill
+git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
 ```
 
 ## 安装依赖
@@ -19,7 +11,7 @@ git clone https://github.com/yourname/up-skill ~/.claude/plugins/up-skill
 本项目用 [uv](https://docs.astral.sh/uv/) 管理依赖。
 
 ```bash
-cd <up-skill 目录>
+cd ~/.claude/skills/up-skill
 
 # 安装 uv（如果还没有）
 curl -LsSf https://astral.sh/uv/install.sh | sh

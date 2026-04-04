@@ -23,21 +23,8 @@
 ## 快速开始
 
 ```bash
-# 方式 1：plugin install（推荐）
-claude plugin install up-skill
-
-# 方式 2：plugin-dir 本地加载
-git clone https://github.com/yourname/up-skill
-claude --plugin-dir ./up-skill
-
-# 方式 3：手动安装
-git clone https://github.com/yourname/up-skill ~/.claude/plugins/up-skill
-```
-
-安装依赖：
-
-```bash
-cd <up-skill 目录>
+git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
+cd ~/.claude/skills/up-skill
 uv sync
 ```
 
@@ -83,7 +70,12 @@ up-skill/
 ├── tools/                      # Python 工具脚本
 │   ├── collector.py            # 数据采集主入口
 │   ├── subtitle_parser.py      # 字幕解析
-│   └── skill_writer.py         # Skill 文件管理
+│   ├── skill_writer.py         # Skill 文件管理
+│   ├── asr_engine.py           # Whisper ASR 引擎
+│   ├── cache_manager.py        # 字幕缓存管理
+│   ├── incremental.py          # 增量更新
+│   ├── material_check.py       # 素材完整性检查
+│   └── text_cleaner.py         # 文本清洗
 ├── tests/                      # 单元测试
 └── ups/                        # 生成的 UP 主 Skill（本地，不提交）
     └── {slug}/
