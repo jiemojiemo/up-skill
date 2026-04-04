@@ -16,6 +16,7 @@ collector.py — UP 主数据采集主入口
 """
 
 import argparse
+import asyncio
 import json
 import os
 import re
@@ -24,7 +25,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from asr_engine import transcribe as asr_transcribe
+from asr_engine import transcribe as asr_transcribe, async_transcribe as asr_async_transcribe
 from cache_manager import clean_cache, clean_all_caches, list_cache_usage, remove_audio_files
 from material_check import check_material_sufficiency
 
@@ -152,16 +153,155 @@ def download_and_transcribe(url: str, cache: Path, engine: str | None = None) ->
     return [result] if result else []
 
 
-def collect_from_urls(urls: list[str], slug: str, engine: str | None = None) -> list[Path]:
-    """批量处理视频链接"""
+def collect_from_urls(urls: list[str], slug: str, engine: str | None = None,
+                      download_jobs: int = 4, asr_jobs: int = 1) -> list[Path]:
+    """批量处理视频链接（内部走 async 管线）"""
+    return asyncio.run(async_collect_from_urls(urls, slug, engine=engine,
+                                               download_jobs=download_jobs,
+                                               asr_jobs=asr_jobs))
+
+
+# ── Async 管线 ───────────────────────────────────────────────────────────────
+
+_print_lock = asyncio.Lock()
+
+
+async def _aprint(*args, **kwargs):
+    """进度输出加锁，防止多任务交错"""
+    async with _print_lock:
+        print(*args, **kwargs)
+
+
+async def _async_run_ytdlp(cmd: list[str]) -> subprocess.CompletedProcess:
+    """用 asyncio subprocess 执行 yt-dlp"""
+    proc = await asyncio.create_subprocess_exec(
+        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate()
+    if proc.returncode != 0:
+        raise subprocess.CalledProcessError(proc.returncode, cmd, stdout, stderr)
+    return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+
+
+async def async_download_subtitles(
+    url: str, cache: Path, engine: str | None, asr_queue: asyncio.Queue,
+) -> list[Path]:
+    """异步下载字幕，无字幕时将音频下载任务放入 ASR 队列"""
+    await _aprint(f'  下载字幕：{url}')
+    existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
+    cmd = [
+        'yt-dlp',
+        '--write-sub', '--write-auto-sub',
+        '--sub-lang', 'zh-Hans,zh,zh-CN',
+        '--sub-format', 'srt/vtt/best',
+        '--skip-download',
+        '--cookies-from-browser', 'chrome',
+        '--output', str(cache / '%(id)s.%(ext)s'),
+        url
+    ]
+    try:
+        await _async_run_ytdlp(cmd)
+    except FileNotFoundError:
+        await _aprint('❌ 未找到 yt-dlp，请先安装：brew install yt-dlp')
+        return []
+    except subprocess.CalledProcessError:
+        await _aprint('  官方字幕不可用，排队 ASR ...')
+        await asr_queue.put((url, cache, engine))
+        return []
+
+    new_subs = list((set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))) - existing)
+    if not new_subs:
+        await _aprint('  未找到字幕文件，排队 ASR ...')
+        await asr_queue.put((url, cache, engine))
+        return []
+    return new_subs
+
+
+async def async_download_and_transcribe(
+    url: str, cache: Path, engine: str | None,
+) -> list[Path]:
+    """异步下载音频并 ASR 转录"""
+    vid = _extract_video_id(url)
+    audio_path = cache / f'{vid}.wav'
+    cmd = [
+        'yt-dlp', '-f', 'worstaudio', '-x', '--audio-format', 'wav',
+        '--postprocessor-args', 'ffmpeg:-ar 16000 -ac 1',
+        '--cookies-from-browser', 'chrome',
+        '-o', str(audio_path), url
+    ]
+    try:
+        await _async_run_ytdlp(cmd)
+    except subprocess.CalledProcessError as e:
+        stderr = e.stderr.decode() if e.stderr else ''
+        await _aprint(f'❌ 音频下载失败：{e}\n{stderr}')
+        return []
+    result = await asr_async_transcribe(audio_path, cache, engine=engine)
+    audio_path.unlink(missing_ok=True)
+    return [result] if result else []
+
+
+async def async_collect_from_urls(
+    urls: list[str], slug: str, engine: str | None = None,
+    download_jobs: int = 4, asr_jobs: int = 1,
+) -> list[Path]:
+    """异步管线主函数：download_semaphore → Queue → asr consumer"""
     cache = get_cache_dir(slug)
-    collected = []
+    download_sem = asyncio.Semaphore(download_jobs)
+    asr_sem = asyncio.Semaphore(asr_jobs)
+    asr_queue: asyncio.Queue = asyncio.Queue(maxsize=asr_jobs * 2)
+    collected: list[Path] = []
     total = len(urls)
-    for i, url in enumerate(urls, 1):
-        print(f'\n[{i}/{total}] 处理中...')
-        results = download_subtitles(url, cache, engine=engine)
-        collected.extend(results)
-        print(f'[{i}/{total}] 完成，累计 {len(collected)} 个字幕文件')
+    done_count = 0
+    done_lock = asyncio.Lock()
+
+    async def _bump():
+        nonlocal done_count
+        async with done_lock:
+            done_count += 1
+            return done_count
+
+    async def download_one(url: str):
+        async with download_sem:
+            try:
+                results = await async_download_subtitles(url, cache, engine, asr_queue)
+                if results:
+                    collected.extend(results)
+                    n = await _bump()
+                    await _aprint(f'[{n}/{total}] 字幕完成，累计 {len(collected)} 个文件')
+            except Exception as e:
+                await _aprint(f'❌ 下载失败 {url}：{e}')
+
+    async def asr_consumer():
+        while True:
+            item = await asr_queue.get()
+            if item is None:
+                asr_queue.task_done()
+                break
+            url, c, eng = item
+            async with asr_sem:
+                try:
+                    results = await async_download_and_transcribe(url, c, eng)
+                    if results:
+                        collected.extend(results)
+                        n = await _bump()
+                        await _aprint(f'[{n}/{total}] ASR 完成，累计 {len(collected)} 个文件')
+                except Exception as e:
+                    await _aprint(f'❌ ASR 失败 {url}：{e}')
+            asr_queue.task_done()
+
+    # 启动 ASR consumer
+    consumers = [asyncio.create_task(asr_consumer()) for _ in range(asr_jobs)]
+
+    # 并发下载
+    download_tasks = [asyncio.create_task(download_one(url)) for url in urls]
+    await asyncio.gather(*download_tasks)
+
+    # 等待 ASR 队列排空，然后发送停止信号
+    await asr_queue.join()
+    for _ in consumers:
+        await asr_queue.put(None)
+    await asyncio.gather(*consumers)
+
     print(f'\n✅ 共获取 {len(collected)} 个字幕文件')
     return collected
 
@@ -201,7 +341,9 @@ def list_space_videos(space_url: str) -> list[dict]:
     return videos
 
 
-def collect_from_space(space_url: str, slug: str, limit: int = 20, yes: bool = False, engine: str | None = None) -> list[Path]:
+def collect_from_space(space_url: str, slug: str, limit: int = 20, yes: bool = False,
+                       engine: str | None = None, download_jobs: int = 4,
+                       asr_jobs: int = 1) -> list[Path]:
     """UP 主主页 → 列出视频 → 用户确认 → 批量处理"""
     videos = list_space_videos(space_url)
     if not videos:
@@ -245,7 +387,8 @@ def collect_from_space(space_url: str, slug: str, limit: int = 20, yes: bool = F
     print(f'\n开始处理 {n} 个视频...\n')
 
     urls = [v['url'] for v in selected]
-    return collect_from_urls(urls, slug, engine=engine)
+    return collect_from_urls(urls, slug, engine=engine,
+                             download_jobs=download_jobs, asr_jobs=asr_jobs)
 
 
 # ── 主入口 ────────────────────────────────────────────────────────────────────
@@ -266,6 +409,8 @@ def main():
     parser.add_argument('--clean', action='store_true', help='清理指定 slug 的缓存')
     parser.add_argument('--clean-all', action='store_true', help='清理所有缓存')
     parser.add_argument('--clean-audio', action='store_true', help='删除缓存中的音频文件，保留文本')
+    parser.add_argument('--download-jobs', type=int, default=4, help='下载并发数（默认 4）')
+    parser.add_argument('--asr-jobs', type=int, default=1, help='ASR 并发数（默认 1）')
 
     args = parser.parse_args()
 
@@ -300,13 +445,17 @@ def main():
         parser.error('请指定 --input、--urls 或 --space 之一')
 
     if args.space:
-        collect_from_space(args.space, args.slug, args.limit, yes=args.yes, engine=args.engine)
+        collect_from_space(args.space, args.slug, args.limit, yes=args.yes,
+                           engine=args.engine, download_jobs=args.download_jobs,
+                           asr_jobs=args.asr_jobs)
     elif args.urls:
-        collect_from_urls(args.urls, args.slug, engine=args.engine)
+        collect_from_urls(args.urls, args.slug, engine=args.engine,
+                          download_jobs=args.download_jobs, asr_jobs=args.asr_jobs)
     elif args.input:
         input_path = Path(args.input)
         if is_url(args.input):
-            collect_from_urls([args.input], args.slug, engine=args.engine)
+            collect_from_urls([args.input], args.slug, engine=args.engine,
+                              download_jobs=args.download_jobs, asr_jobs=args.asr_jobs)
         elif input_path.exists():
             suffix = input_path.suffix.lower() if input_path.is_file() else ''
             video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.flv', '.webm'}
