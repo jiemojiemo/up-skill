@@ -43,19 +43,23 @@
 
 ---
 
+## 前置条件
+
+这是一个 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill，需要先安装 Claude Code CLI。安装后在终端输入 `claude` 即可启动。
+
 ## 安装
 
 ### Claude Code
 
-> Claude Code 从 git 仓库根目录的 `.claude/skills/` 查找 skill。
+> Claude Code 从 `~/.claude/skills/` 或项目内 `.claude/skills/` 查找 skill。
 
 ```bash
-# 安装到当前项目（在 git 仓库根目录执行）
+# 安装到全局（所有项目都能用，推荐）
+git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
+
+# 或安装到当前项目（在 git 仓库根目录执行）
 mkdir -p .claude/skills
 git clone https://github.com/jiemojiemo/up-skill .claude/skills/up-skill
-
-# 或安装到全局（所有项目都能用）
-git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
 ```
 
 ### Codex
@@ -67,16 +71,24 @@ git clone https://github.com/jiemojiemo/up-skill ~/.codex/skills/up-skill
 ### 依赖（可选，自动采集需要）
 
 ```bash
+# pip 用户
 pip3 install -r requirements.txt
+
+# uv 用户
+uv venv && uv pip install -r requirements.txt
 ```
 
 > 自动采集依赖 `yt-dlp`，B 站需要 Chrome 登录态。无官方字幕时会用 Whisper 转录。详见 [INSTALL.md](INSTALL.md)。
+
+### 验证安装
+
+启动 Claude Code（终端输入 `claude`），然后输入 `/create-up`。如果看到 UP 主信息录入提示，说明 skill 已生效。
 
 ---
 
 ## 使用
 
-在 Claude Code 中输入：
+在 Claude Code 对话中输入（不是在终端里）：
 
 ```
 /create-up
