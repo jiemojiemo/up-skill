@@ -3,20 +3,25 @@
 ## 安装到 Claude Code
 
 ```bash
+# 安装到当前项目
+mkdir -p .claude/skills
+git clone https://github.com/jiemojiemo/up-skill .claude/skills/up-skill
+
+# 或安装到全局
 git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
 ```
 
 ## 安装依赖
 
-本项目用 [uv](https://docs.astral.sh/uv/) 管理依赖。
+```bash
+pip3 install -r .claude/skills/up-skill/requirements.txt
+```
+
+或者用 [uv](https://docs.astral.sh/uv/) 管理完整开发环境：
 
 ```bash
-cd ~/.claude/skills/up-skill
-
-# 安装 uv（如果还没有）
+cd .claude/skills/up-skill
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 安装所有依赖
 uv sync
 ```
 
@@ -41,13 +46,15 @@ yt-dlp --cookies-from-browser chrome <url>
 ### whisper（可选，无官方字幕时使用）
 
 ```bash
-uv add openai-whisper
+pip install openai-whisper
 # 首次运行会自动下载模型（tiny 模型约 75MB）
 ```
 
 ## 快速验证
 
 ```bash
+cd .claude/skills/up-skill
+
 # 列出已有 UP 主
 uv run python3 tools/skill_writer.py --action list --base-dir ./ups
 

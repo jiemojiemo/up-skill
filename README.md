@@ -4,10 +4,10 @@
 
 给一个主页链接，自动采集视频字幕，生成四层数字分身：
 
-- **Persona** — 语气、口头禅、互动风格
-- **Content Brain** — 选题偏好、标志性观点、知识边界
-- **Production Style** — 标题套路、开头 Hook、口播节奏
-- **Brand Guardrails** — 商业边界、话题红线、翻车风险
+- Persona — 语气、口头禅、互动风格
+- Content Brain — 选题偏好、标志性观点、知识边界
+- Production Style — 标题套路、开头 Hook、口播节奏
+- Brand Guardrails — 商业边界、话题红线、翻车风险
 
 生成后可以用四种方式调用：
 
@@ -23,9 +23,15 @@
 ## 快速开始
 
 ```bash
+# 安装到当前项目
+mkdir -p .claude/skills
+git clone https://github.com/jiemojiemo/up-skill .claude/skills/up-skill
+
+# 或安装到全局
 git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
-cd ~/.claude/skills/up-skill
-uv sync
+
+# 依赖（可选，自动采集功能需要）
+pip3 install -r .claude/skills/up-skill/requirements.txt
 ```
 
 然后在 Claude Code 中说 `/create-up`，告诉 Claude UP 主的主页链接，剩下的它来做。
@@ -49,35 +55,20 @@ uv sync
 
 ```
 up-skill/
-├── .claude-plugin/
-│   ├── plugin.json             # 插件元数据
-│   └── marketplace.json        # marketplace 发布配置
-├── skills/
-│   └── up-skill/
-│       └── SKILL.md            # Skill 入口
-├── prompts/                    # 分析和生成的 Prompt 模板
-│   ├── intake.md
-│   ├── persona_analyzer.md
-│   ├── content_brain_analyzer.md
-│   ├── production_style_analyzer.md
-│   ├── brand_guardrails_analyzer.md
-│   ├── persona_builder.md
-│   ├── content_brain_builder.md
-│   ├── production_style_builder.md
-│   ├── brand_guardrails_builder.md
-│   ├── merger.md
-│   └── correction_handler.md
-├── tools/                      # Python 工具脚本
-│   ├── collector.py            # 数据采集主入口
-│   ├── subtitle_parser.py      # 字幕解析
-│   ├── skill_writer.py         # Skill 文件管理
-│   ├── asr_engine.py           # Whisper ASR 引擎
-│   ├── cache_manager.py        # 字幕缓存管理
-│   ├── incremental.py          # 增量更新
-│   ├── material_check.py       # 素材完整性检查
-│   └── text_cleaner.py         # 文本清洗
-├── tests/                      # 单元测试
-└── ups/                        # 生成的 UP 主 Skill（本地，不提交）
+├── SKILL.md                   # Skill 入口（name: create-up）
+├── requirements.txt           # 运行时依赖
+├── prompts/                   # 分析和生成的 Prompt 模板
+├── tools/                     # Python 工具脚本
+│   ├── collector.py           # 数据采集主入口
+│   ├── subtitle_parser.py     # 字幕解析
+│   ├── skill_writer.py        # Skill 文件管理
+│   ├── asr_engine.py          # Whisper ASR 引擎
+│   ├── cache_manager.py       # 字幕缓存管理
+│   ├── incremental.py         # 增量更新
+│   ├── material_check.py      # 素材完整性检查
+│   └── text_cleaner.py        # 文本清洗
+├── tests/                     # 单元测试
+└── ups/                       # 生成的 UP 主 Skill（本地，不提交）
     └── {slug}/
         ├── SKILL.md
         ├── persona.md

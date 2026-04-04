@@ -25,24 +25,24 @@ def _read(relpath: str) -> str:
 class TestSkillMdSubcommands:
 
     def test_NoCommentSubcommand(self):
-        content = _read("skills/up-skill/SKILL.md")
+        content = _read("SKILL.md")
         assert "/{slug}-comment" not in content
 
     def test_NoLiveSubcommand(self):
-        content = _read("skills/up-skill/SKILL.md")
+        content = _read("SKILL.md")
         assert "/{slug}-live" not in content
 
     def test_NoBrandSubcommand(self):
-        content = _read("skills/up-skill/SKILL.md")
+        content = _read("SKILL.md")
         assert "/{slug}-brand" not in content
 
     def test_HasCheckSubcommand(self):
-        content = _read("skills/up-skill/SKILL.md")
+        content = _read("SKILL.md")
         assert "-check" in content
 
     def test_HasExactlyFourSubcommands(self):
         """确认交付列表只有 4 个子命令"""
-        content = _read("skills/up-skill/SKILL.md")
+        content = _read("SKILL.md")
         # 匹配 /{slug} 开头的行
         lines = [l for l in content.splitlines() if re.search(r'/{slug}', l)]
         # 去重（同一个子命令可能出现在列表和详细说明中）
@@ -55,7 +55,7 @@ class TestSkillMdSubcommands:
 
     def test_CheckSectionDescription(self):
         """/{slug}-check 的描述应包含'风格边界'"""
-        content = _read("skills/up-skill/SKILL.md")
+        content = _read("SKILL.md")
         assert "风格边界" in content
 
 

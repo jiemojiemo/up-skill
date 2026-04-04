@@ -44,10 +44,10 @@ allowed-tools: Read, Write, Edit, Bash
 |------|---------|
 | 读取字幕文件（.srt/.vtt/.txt） | `Read` 工具 |
 | 读取截图/封面图 | `Read` 工具（原生支持图片） |
-| 解析 B 站字幕 JSON | `Bash` → `python3 ${CLAUDE_PLUGIN_DIR}/tools/subtitle_parser.py` |
-| 解析评论区导出 | `Bash` → `python3 ${CLAUDE_PLUGIN_DIR}/tools/comment_parser.py` |
+| 解析 B 站字幕 JSON | `Bash` → `python3 ${SKILL_DIR}/tools/subtitle_parser.py` |
+| 解析评论区导出 | `Bash` → `python3 ${SKILL_DIR}/tools/comment_parser.py` |
 | 写入/更新 Skill 文件 | `Write` / `Edit` 工具 |
-| 列出已有 Skill | `Bash` → `python3 ${CLAUDE_PLUGIN_DIR}/tools/skill_writer.py --action list` |
+| 列出已有 Skill | `Bash` → `python3 ${SKILL_DIR}/tools/skill_writer.py --action list` |
 
 **基础目录**：Skill 文件写入 `./ups/{slug}/`（相对于本项目目录）。
 
@@ -57,7 +57,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 ### Step 1：基础信息录入（3 个问题）
 
-参考 `${CLAUDE_PLUGIN_DIR}/prompts/intake.md` 的问题序列，只问 3 个问题：
+参考 `${SKILL_DIR}/prompts/intake.md` 的问题序列，只问 3 个问题：
 
 1. **UP 主名/代号**（必填）
 2. **基本信息**（一句话：平台、领域、粉丝量级、性别）
@@ -103,7 +103,7 @@ allowed-tools: Read, Write, Edit, Bash
 **[E] 自动采集流程**：
 1. 先用 `--limit 1 --yes` 试探性调用 collector，从输出中获取频道视频总数
 2. 告知用户视频总数，询问要采集几个（建议至少 5-10 个，默认 20）
-3. 用户确认数量后，调用 `python3 ${CLAUDE_PLUGIN_DIR}/tools/collector.py --slug {slug} --space <url> --limit {用户指定数量} --yes`
+3. 用户确认数量后，调用 `python3 ${SKILL_DIR}/tools/collector.py --slug {slug} --space <url> --limit {用户指定数量} --yes`
 4. collector 会用 yt-dlp 列出视频 → 优先抓官方字幕 → 无字幕则下载音频 ASR
 5. 转录文本缓存到 `~/.up-skill/cache/{slug}/transcripts/`
 6. 采集完成后读取缓存目录中的文本，进入 Step 3 分析
@@ -114,10 +114,10 @@ allowed-tools: Read, Write, Edit, Bash
 
 收到原材料后，依次执行：
 
-1. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/persona_analyzer.md` 分析人格层
-2. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/content_brain_analyzer.md` 分析内容大脑层
-3. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/production_style_analyzer.md` 分析生产风格层
-4. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/brand_guardrails_analyzer.md` 分析品牌边界层
+1. 参考 `${SKILL_DIR}/prompts/persona_analyzer.md` 分析人格层
+2. 参考 `${SKILL_DIR}/prompts/content_brain_analyzer.md` 分析内容大脑层
+3. 参考 `${SKILL_DIR}/prompts/production_style_analyzer.md` 分析生产风格层
+4. 参考 `${SKILL_DIR}/prompts/brand_guardrails_analyzer.md` 分析品牌边界层
 
 每层分析完后，输出关键发现，询问用户确认或补充。
 
@@ -125,14 +125,14 @@ allowed-tools: Read, Write, Edit, Bash
 
 分析确认后，依次生成：
 
-1. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/persona_builder.md` → 写入 `./ups/{slug}/persona.md`
-2. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/content_brain_builder.md` → 写入 `./ups/{slug}/content_brain.md`
-3. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/production_style_builder.md` → 写入 `./ups/{slug}/production_style.md`
-4. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/brand_guardrails_builder.md` → 写入 `./ups/{slug}/brand_guardrails.md`
+1. 参考 `${SKILL_DIR}/prompts/persona_builder.md` → 写入 `./ups/{slug}/persona.md`
+2. 参考 `${SKILL_DIR}/prompts/content_brain_builder.md` → 写入 `./ups/{slug}/content_brain.md`
+3. 参考 `${SKILL_DIR}/prompts/production_style_builder.md` → 写入 `./ups/{slug}/production_style.md`
+4. 参考 `${SKILL_DIR}/prompts/brand_guardrails_builder.md` → 写入 `./ups/{slug}/brand_guardrails.md`
 
 ### Step 5：合并生成组合 Skill
 
-参考 `${CLAUDE_PLUGIN_DIR}/prompts/merger.md`，将四层合并为 `./ups/{slug}/SKILL.md`。
+参考 `${SKILL_DIR}/prompts/merger.md`，将四层合并为 `./ups/{slug}/SKILL.md`。
 
 同时写入 `./ups/{slug}/meta.json`：
 
@@ -219,7 +219,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 当用户说"这不对" / "他不会这样说"：
 
-1. 参考 `${CLAUDE_PLUGIN_DIR}/prompts/correction_handler.md` 识别纠错内容
+1. 参考 `${SKILL_DIR}/prompts/correction_handler.md` 识别纠错内容
 2. 判断属于哪一层（Persona / Content Brain / Production Style / Brand Guardrails）
 3. 生成纠错记录
 4. 用 `Edit` 工具追加到对应文件的 `## Correction 记录` 区块
@@ -231,7 +231,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 `/list-ups`:
 ```bash
-python3 ${CLAUDE_PLUGIN_DIR}/tools/skill_writer.py --action list --base-dir ./ups
+python3 ${SKILL_DIR}/tools/skill_writer.py --action list --base-dir ./ups
 ```
 
 `/delete-up {slug}`:

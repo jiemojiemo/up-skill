@@ -1,0 +1,5 @@
+yt-dlp
+openai-whisper
+pypinyin
+faster-whisper
+mlx-whisper
