@@ -138,12 +138,14 @@ def download_and_transcribe(url: str, cache: Path, engine: str | None = None) ->
     cmd = [
         'yt-dlp', '-f', 'worstaudio', '-x', '--audio-format', 'wav',
         '--postprocessor-args', 'ffmpeg:-ar 16000 -ac 1',
+        '--cookies-from-browser', 'chrome',
         '-o', str(audio_path), url
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
-        print(f'❌ 音频下载失败：{e}', file=sys.stderr)
+        stderr = e.stderr.decode() if e.stderr else ''
+        print(f'❌ 音频下载失败：{e}\n{stderr}', file=sys.stderr)
         return []
     result = asr_transcribe(audio_path, cache, engine=engine)
     audio_path.unlink(missing_ok=True)
