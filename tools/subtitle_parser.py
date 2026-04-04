@@ -3,7 +3,7 @@
 subtitle_parser.py — 解析字幕文件，输出适合 LLM 分析的整理文本
 
 支持格式：.srt / .vtt / .txt（纯文本逐字稿）
-用法：python3 subtitle_parser.py <file_or_dir> [--output <output_file>]
+用法：uv run python3 subtitle_parser.py <file_or_dir> [--output <output_file>]
 """
 
 import re

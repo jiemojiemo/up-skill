@@ -45,7 +45,11 @@
 
 ## 前置条件
 
-这是一个 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill，需要先安装 Claude Code CLI。安装后在终端输入 `claude` 即可启动。
+这是一个 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill，需要：
+
+1. 安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI（终端输入 `claude` 启动）
+2. 安装 [uv](https://docs.astral.sh/uv/)（Python 包管理，`curl -LsSf https://astral.sh/uv/install.sh | sh`）
+3. B 站自动采集需要 Chrome 已登录 B 站（yt-dlp 读取 cookies）
 
 ## 安装
 
@@ -71,14 +75,10 @@ git clone https://github.com/jiemojiemo/up-skill ~/.codex/skills/up-skill
 ### 依赖（可选，自动采集需要）
 
 ```bash
-# pip 用户
-pip3 install -r requirements.txt
-
-# uv 用户
-uv venv && uv pip install -r requirements.txt
+cd ~/.claude/skills/up-skill && uv sync
 ```
 
-> 自动采集依赖 `yt-dlp`，B 站需要 Chrome 登录态。无官方字幕时会用 Whisper 转录。详见 [INSTALL.md](INSTALL.md)。
+> 自动采集依赖 `yt-dlp`，B 站需要 Chrome 已登录 B 站。无官方字幕时会用 Whisper 转录。详见 [INSTALL.md](INSTALL.md)。
 
 ### 验证安装
 
@@ -166,7 +166,7 @@ uv venv && uv pip install -r requirements.txt
 ```
 up-skill/
 ├── SKILL.md              # Skill 入口（name: create-up）
-├── requirements.txt      # 运行时依赖
+├── pyproject.toml        # 项目配置与依赖
 ├── prompts/              # Prompt 模板
 │   ├── intake.md         #   信息录入
 │   ├── persona_analyzer.md / persona_builder.md

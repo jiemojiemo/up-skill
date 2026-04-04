@@ -13,15 +13,16 @@ git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
 
 ## 安装依赖
 
+需要先安装 [uv](https://docs.astral.sh/uv/)：
+
 ```bash
-pip3 install -r .claude/skills/up-skill/requirements.txt
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-或者用 [uv](https://docs.astral.sh/uv/) 管理完整开发环境：
+然后安装项目依赖：
 
 ```bash
-cd .claude/skills/up-skill
-curl -LsSf https://astral.sh/uv/install.sh | sh
+cd ~/.claude/skills/up-skill   # 或你的 skill 安装路径
 uv sync
 ```
 
@@ -29,12 +30,10 @@ uv sync
 
 ### yt-dlp（必需）
 
-用于从 B 站下载字幕和视频。
+用于从 B 站下载字幕和视频。已包含在 `uv sync` 中，也可单独安装：
 
 ```bash
 brew install yt-dlp   # macOS
-# 或
-pip install yt-dlp
 ```
 
 B 站需要登录态才能访问，工具会自动从 Chrome 读取 cookies：
@@ -45,10 +44,7 @@ yt-dlp --cookies-from-browser chrome <url>
 
 ### whisper（可选，无官方字幕时使用）
 
-```bash
-pip install openai-whisper
-# 首次运行会自动下载模型（tiny 模型约 75MB）
-```
+已包含在 `uv sync` 中（openai-whisper、mlx-whisper、faster-whisper）。首次运行会自动下载模型（tiny 模型约 75MB）。
 
 ## 快速验证
 

@@ -3,9 +3,9 @@
 skill_writer.py — 创建和管理 UP 主 Skill 文件
 
 用法：
-  python3 skill_writer.py --action create --slug <slug> --name <name> [options]
-  python3 skill_writer.py --action list --base-dir ./ups
-  python3 skill_writer.py --action version --slug <slug> --base-dir ./ups
+  uv run python3 skill_writer.py --action create --slug <slug> --name <name> [options]
+  uv run python3 skill_writer.py --action list --base-dir ./ups
+  uv run python3 skill_writer.py --action version --slug <slug> --base-dir ./ups
 """
 
 import argparse

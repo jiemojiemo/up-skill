@@ -53,6 +53,6 @@ class TestProjectDocs:
         content = open(path).read()
         assert "skills/up-skill" in content or "SKILL.md" in content
 
-    def test_requirements_txt_exists(self):
-        path = os.path.join(PROJECT_ROOT, "requirements.txt")
-        assert os.path.isfile(path), "requirements.txt should exist at project root"
+    def test_pyproject_toml_exists(self):
+        path = os.path.join(PROJECT_ROOT, "pyproject.toml")
+        assert os.path.isfile(path), "pyproject.toml should exist at project root"

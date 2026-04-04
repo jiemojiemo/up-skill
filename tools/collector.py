@@ -11,8 +11,8 @@ collector.py — UP 主数据采集主入口
 缓存目录：~/.up-skill/cache/{slug}/transcripts/
 
 用法：
-  python3 collector.py --slug <slug> --input <path_or_url> [options]
-  python3 collector.py --slug <slug> --space <bilibili_space_url> [--limit 20]
+  uv run python3 collector.py --slug <slug> --input <path_or_url> [options]
+  uv run python3 collector.py --slug <slug> --space <bilibili_space_url> [--limit 20]
 """
 
 import argparse

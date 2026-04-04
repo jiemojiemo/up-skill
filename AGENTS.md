@@ -15,7 +15,7 @@
 ```
 up-skill/
 ├── SKILL.md                 # Skill 入口（name: create-up）
-├── requirements.txt         # 运行时依赖
+├── pyproject.toml           # 项目配置与依赖
 ├── prompts/                 # 11 个 LLM prompt 模板（analyzer + builder 配对）
 ├── tools/                   # Python 工具
 │   ├── collector.py         # 素材采集（字幕/本地视频/链接/主页）
@@ -60,7 +60,7 @@ up-skill/
 ## 常用命令
 
 ```bash
-uv run pytest tests/              # 跑测试
-uv run python tools/collector.py  # 素材采集
-uv run python tools/skill_writer.py  # 写入 Skill
+uv run pytest tests/                # 跑测试
+uv run python3 tools/collector.py   # 素材采集
+uv run python3 tools/skill_writer.py  # 写入 Skill
 ```
