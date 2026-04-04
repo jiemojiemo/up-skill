@@ -44,10 +44,10 @@ allowed-tools: Read, Write, Edit, Bash
 |------|---------|
 | 读取字幕文件（.srt/.vtt/.txt） | `Read` 工具 |
 | 读取截图/封面图 | `Read` 工具（原生支持图片） |
-| 解析 B 站字幕 JSON | `Bash` → `uv run --directory ${SKILL_DIR} python3 ${SKILL_DIR}/tools/subtitle_parser.py` |
-| 解析评论区导出 | `Bash` → `uv run --directory ${SKILL_DIR} python3 ${SKILL_DIR}/tools/comment_parser.py` |
+| 解析 B 站字幕 JSON | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/subtitle_parser.py` |
+| 解析评论区导出 | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/comment_parser.py` |
 | 写入/更新 Skill 文件 | `Write` / `Edit` 工具 |
-| 列出已有 Skill | `Bash` → `uv run --directory ${SKILL_DIR} python3 ${SKILL_DIR}/tools/skill_writer.py --action list` |
+| 列出已有 Skill | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/skill_writer.py --action list` |
 
 **基础目录**：Skill 文件写入 `./ups/{slug}/`（相对于本项目目录）。
 
@@ -103,7 +103,7 @@ allowed-tools: Read, Write, Edit, Bash
 **[E] 自动采集流程**：
 1. 先用 `--limit 1 --yes` 试探性调用 collector，从输出中获取频道视频总数
 2. 告知用户视频总数，询问要采集几个（建议至少 5-10 个，默认 20）
-3. 用户确认数量后，调用 `uv run --directory ${SKILL_DIR} python3 ${SKILL_DIR}/tools/collector.py --slug {slug} --space <url> --limit {用户指定数量} --yes`
+3. 用户确认数量后，调用 `uv run --directory ${SKILL_DIR} python3 tools/collector.py --slug {slug} --space <url> --limit {用户指定数量} --yes`
 4. collector 会用 yt-dlp 列出视频 → 优先抓官方字幕 → 无字幕则下载音频 ASR
 5. 转录文本缓存到 `~/.up-skill/cache/{slug}/transcripts/`
 6. 采集完成后读取缓存目录中的文本，进入 Step 3 分析
@@ -231,7 +231,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 `/list-ups`:
 ```bash
-uv run --directory ${SKILL_DIR} python3 ${SKILL_DIR}/tools/skill_writer.py --action list --base-dir ./ups
+uv run --directory ${SKILL_DIR} python3 tools/skill_writer.py --action list --base-dir ./ups
 ```
 
 `/delete-up {slug}`:
