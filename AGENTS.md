@@ -20,7 +20,12 @@ up-skill/
 ├── tools/                   # Python 工具
 │   ├── collector.py         # 素材采集（字幕/本地视频/链接/主页）
 │   ├── subtitle_parser.py   # 字幕解析 → 纯文本
-│   └── skill_writer.py      # 写入 ups/{slug}/ 目录结构
+│   ├── asr_engine.py        # Whisper ASR 引擎
+│   ├── skill_writer.py      # 写入 ups/{slug}/ 目录结构
+│   ├── cache_manager.py     # 字幕缓存管理
+│   ├── incremental.py       # 增量更新
+│   ├── material_check.py    # 素材完整性检查
+│   └── text_cleaner.py      # 文本清洗
 ├── tests/                   # 单测
 ├── docs/                    # 文档和待办
 └── ups/                     # 生成的 Skill（gitignored）
