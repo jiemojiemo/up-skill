@@ -16,11 +16,22 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pypinyin import lazy_pinyin
+
 
 def slugify(name: str) -> str:
-    name = name.lower().strip()
-    name = re.sub(r'[\s\-]+', '_', name)
+    """中文名 → 拼音下划线连接，英文名 → 小写下划线连接"""
+    name = name.strip()
+    # 如果包含中文字符，用 pypinyin 转换
+    if re.search(r'[\u4e00-\u9fff]', name):
+        parts = lazy_pinyin(name)
+        name = '_'.join(parts)
+    else:
+        name = name.lower()
+        name = re.sub(r'[\s\-]+', '_', name)
     name = re.sub(r'[^\w]', '', name)
+    name = re.sub(r'_+', '_', name)
+    name = name.strip('_')
     return name
 
 

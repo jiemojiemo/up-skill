@@ -19,24 +19,32 @@ from skill_writer import slugify, create_skill, bump_version, archive_version, l
 
 # ── slugify ───────────────────────────────────────────────────────────────────
 
-def test_Slugify_ConvertsSpacesToUnderscores():
-    assert slugify("影视 飓风") == "影视_飓风"
+def test_Slugify_ChineseNameToPinyin():
+    assert slugify("影视飓风") == "ying_shi_ju_feng"
 
 
-def test_Slugify_ConvertsToLowercase():
+def test_Slugify_ChineseNameWithSpacesToPinyin():
+    assert slugify("影视 飓风") == "ying_shi_ju_feng"
+
+
+def test_Slugify_EnglishConvertsToLowercase():
     assert slugify("TestUP") == "testup"
 
 
-def test_Slugify_RemovesSpecialCharacters():
-    assert slugify("up主(测试)") == "up主测试"
+def test_Slugify_MixedChineseEnglishToPinyin():
+    assert slugify("up主(测试)") == "up_zhu_ce_shi"
 
 
-def test_Slugify_HandlesContinuousSpaces():
+def test_Slugify_EnglishHandlesContinuousSpaces():
     assert slugify("a  b") == "a_b"
 
 
 def test_Slugify_TrimsLeadingAndTrailingSpaces():
-    assert slugify("  名字  ") == "名字"
+    assert slugify("  名字  ") == "ming_zi"
+
+
+def test_Slugify_PureEnglishWithHyphens():
+    assert slugify("tim-cook") == "tim_cook"
 
 
 # ── create_skill ──────────────────────────────────────────────────────────────
