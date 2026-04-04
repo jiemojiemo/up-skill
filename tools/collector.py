@@ -24,6 +24,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from asr_engine import transcribe as asr_transcribe
+from cache_manager import clean_cache, clean_all_caches, list_cache_usage, remove_audio_files
+from material_check import check_material_sufficiency
+
 CACHE_DIR = Path.home() / '.up-skill' / 'cache'
 
 
@@ -63,30 +67,7 @@ def collect_from_subtitles(input_path: Path, slug: str) -> list[Path]:
 
 # ── 模式 2：本地视频 → ASR ────────────────────────────────────────────────────
 
-def transcribe_with_whisper(video_path: Path, output_dir: Path) -> Optional[Path]:
-    """用 whisper 转录视频，输出 .srt 到 output_dir"""
-    out_name = video_path.stem + '.srt'
-    out_path = output_dir / out_name
-    if out_path.exists():
-        print(f'  缓存命中，跳过转录：{out_name}')
-        return out_path
-    print(f'  转录中：{video_path.name} ...')
-    try:
-        subprocess.run(
-            ['whisper', str(video_path), '--output_format', 'srt',
-             '--output_dir', str(output_dir), '--language', 'zh'],
-            check=True, capture_output=True
-        )
-        return out_path
-    except FileNotFoundError:
-        print('❌ 未找到 whisper，请先安装：pip install openai-whisper', file=sys.stderr)
-        return None
-    except subprocess.CalledProcessError as e:
-        print(f'❌ 转录失败：{e}', file=sys.stderr)
-        return None
-
-
-def collect_from_videos(input_path: Path, slug: str) -> list[Path]:
+def collect_from_videos(input_path: Path, slug: str, engine: str | None = None) -> list[Path]:
     """本地视频文件/目录 → ASR"""
     cache = get_cache_dir(slug)
     video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.flv', '.webm'}
@@ -100,7 +81,7 @@ def collect_from_videos(input_path: Path, slug: str) -> list[Path]:
 
     collected = []
     for v in videos:
-        result = transcribe_with_whisper(v, cache)
+        result = asr_transcribe(v, cache, engine=engine)
         if result:
             collected.append(result)
     print(f'✅ 转录完成 {len(collected)}/{len(videos)} 个视频')
@@ -109,9 +90,10 @@ def collect_from_videos(input_path: Path, slug: str) -> list[Path]:
 
 # ── 模式 3：视频链接 → yt-dlp ─────────────────────────────────────────────────
 
-def download_subtitles(url: str, cache: Path) -> list[Path]:
+def download_subtitles(url: str, cache: Path, engine: str | None = None) -> list[Path]:
     """用 yt-dlp 下载字幕，优先官方字幕，没有则自动字幕"""
     print(f'  下载字幕：{url}')
+    existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
     cmd = [
         'yt-dlp',
         '--write-sub', '--write-auto-sub',
@@ -130,34 +112,55 @@ def download_subtitles(url: str, cache: Path) -> list[Path]:
     except subprocess.CalledProcessError:
         # 字幕下载失败，尝试下载视频再 ASR
         print('  官方字幕不可用，尝试 ASR ...')
-        return download_and_transcribe(url, cache)
+        return download_and_transcribe(url, cache, engine=engine)
 
-    # 收集下载的字幕文件
-    return list(cache.glob('*.srt')) + list(cache.glob('*.vtt'))
+    # 只看新增的字幕文件
+    new_subs = list((set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))) - existing)
+    if not new_subs:
+        print('  未找到字幕文件，尝试 ASR ...')
+        return download_and_transcribe(url, cache, engine=engine)
+    return new_subs
 
 
-def download_and_transcribe(url: str, cache: Path) -> list[Path]:
-    """下载视频并用 whisper 转录"""
-    video_path = cache / 'tmp_video.mp4'
-    cmd = ['yt-dlp', '-f', 'bestaudio', '-o', str(video_path), url]
+def _extract_video_id(url: str) -> str:
+    """从 B 站 URL 提取视频 ID（BV 号），fallback 用 URL hash"""
+    m = re.search(r'(BV[\w]+)', url)
+    if m:
+        return m.group(1)
+    import hashlib
+    return hashlib.md5(url.encode()).hexdigest()[:12]
+
+
+def download_and_transcribe(url: str, cache: Path, engine: str | None = None) -> list[Path]:
+    """下载最低质量音频（16kHz 单声道 wav）并用 ASR 转录"""
+    vid = _extract_video_id(url)
+    audio_path = cache / f'{vid}.wav'
+    cmd = [
+        'yt-dlp', '-f', 'worstaudio', '-x', '--audio-format', 'wav',
+        '--postprocessor-args', 'ffmpeg:-ar 16000 -ac 1',
+        '-o', str(audio_path), url
+    ]
     try:
         subprocess.run(cmd, check=True, capture_output=True)
     except subprocess.CalledProcessError as e:
-        print(f'❌ 视频下载失败：{e}', file=sys.stderr)
+        print(f'❌ 音频下载失败：{e}', file=sys.stderr)
         return []
-    result = transcribe_with_whisper(video_path, cache)
-    video_path.unlink(missing_ok=True)  # 转录完删除原视频节省空间
+    result = asr_transcribe(audio_path, cache, engine=engine)
+    audio_path.unlink(missing_ok=True)
     return [result] if result else []
 
 
-def collect_from_urls(urls: list[str], slug: str) -> list[Path]:
+def collect_from_urls(urls: list[str], slug: str, engine: str | None = None) -> list[Path]:
     """批量处理视频链接"""
     cache = get_cache_dir(slug)
     collected = []
-    for url in urls:
-        results = download_subtitles(url, cache)
+    total = len(urls)
+    for i, url in enumerate(urls, 1):
+        print(f'\n[{i}/{total}] 处理中...')
+        results = download_subtitles(url, cache, engine=engine)
         collected.extend(results)
-    print(f'✅ 共获取 {len(collected)} 个字幕文件')
+        print(f'[{i}/{total}] 完成，累计 {len(collected)} 个字幕文件')
+    print(f'\n✅ 共获取 {len(collected)} 个字幕文件')
     return collected
 
 
@@ -196,7 +199,7 @@ def list_space_videos(space_url: str) -> list[dict]:
     return videos
 
 
-def collect_from_space(space_url: str, slug: str, limit: int = 20, yes: bool = False) -> list[Path]:
+def collect_from_space(space_url: str, slug: str, limit: int = 20, yes: bool = False, engine: str | None = None) -> list[Path]:
     """UP 主主页 → 列出视频 → 用户确认 → 批量处理"""
     videos = list_space_videos(space_url)
     if not videos:
@@ -240,7 +243,7 @@ def collect_from_space(space_url: str, slug: str, limit: int = 20, yes: bool = F
     print(f'\n开始处理 {n} 个视频...\n')
 
     urls = [v['url'] for v in selected]
-    return collect_from_urls(urls, slug)
+    return collect_from_urls(urls, slug, engine=engine)
 
 
 # ── 主入口 ────────────────────────────────────────────────────────────────────
@@ -249,16 +252,36 @@ def main():
     parser = argparse.ArgumentParser(description='UP 主数据采集工具')
     parser.add_argument('--slug', required=True, help='UP 主 slug（用于缓存目录命名）')
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument('--input', help='本地字幕文件/视频文件/目录，或单个视频 URL')
     group.add_argument('--urls', nargs='+', help='多个视频 URL')
     group.add_argument('--space', help='B 站 UP 主主页 URL（space.bilibili.com/...）')
 
     parser.add_argument('--limit', type=int, default=20, help='主页模式默认处理视频数（默认 20）')
+    parser.add_argument('--engine', choices=['mlx', 'faster', 'whisper'], help='手动指定 ASR 引擎')
     parser.add_argument('--yes', '-y', action='store_true', help='跳过交互确认，直接使用 --limit 数量')
     parser.add_argument('--list-cache', action='store_true', help='列出已缓存的字幕文件')
+    parser.add_argument('--clean', action='store_true', help='清理指定 slug 的缓存')
+    parser.add_argument('--clean-all', action='store_true', help='清理所有缓存')
+    parser.add_argument('--clean-audio', action='store_true', help='删除缓存中的音频文件，保留文本')
 
     args = parser.parse_args()
+
+    if args.clean_all:
+        clean_all_caches(CACHE_DIR)
+        print('✅ 已清理所有缓存')
+        return
+
+    if args.clean:
+        clean_cache(CACHE_DIR, args.slug)
+        print(f'✅ 已清理 {args.slug} 的缓存')
+        return
+
+    if args.clean_audio:
+        cache = get_cache_dir(args.slug)
+        n = remove_audio_files(cache)
+        print(f'✅ 已删除 {n} 个音频文件')
+        return
 
     if args.list_cache:
         cache = get_cache_dir(args.slug)
@@ -271,21 +294,24 @@ def main():
             print('缓存为空')
         return
 
+    if not args.space and not args.urls and not args.input:
+        parser.error('请指定 --input、--urls 或 --space 之一')
+
     if args.space:
-        collect_from_space(args.space, args.slug, args.limit, yes=args.yes)
+        collect_from_space(args.space, args.slug, args.limit, yes=args.yes, engine=args.engine)
     elif args.urls:
-        collect_from_urls(args.urls, args.slug)
+        collect_from_urls(args.urls, args.slug, engine=args.engine)
     elif args.input:
         input_path = Path(args.input)
         if is_url(args.input):
-            collect_from_urls([args.input], args.slug)
+            collect_from_urls([args.input], args.slug, engine=args.engine)
         elif input_path.exists():
             suffix = input_path.suffix.lower() if input_path.is_file() else ''
             video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.flv', '.webm'}
             if suffix in video_exts or (input_path.is_dir() and any(
                 input_path.glob(f'*{e}') for e in video_exts
             )):
-                collect_from_videos(input_path, args.slug)
+                collect_from_videos(input_path, args.slug, engine=args.engine)
             else:
                 collect_from_subtitles(input_path, args.slug)
         else:
@@ -294,6 +320,11 @@ def main():
 
     cache = get_cache_dir(args.slug)
     print(f'\n字幕文件已缓存至：{cache}')
+
+    # 素材量检查
+    result = check_material_sufficiency(cache)
+    print(result['message'])
+
     print('下一步：将缓存目录提供给 Claude 进行四层分析')
 
 
