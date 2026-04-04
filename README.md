@@ -58,8 +58,11 @@
 > Claude Code 从 `~/.claude/skills/` 或项目内 `.claude/skills/` 查找 skill。
 
 ```bash
-# 安装到全局（所有项目都能用，推荐）
+# 首次安装到全局（所有项目都能用，推荐）
 git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
+
+# 已安装过？更新到最新版
+cd ~/.claude/skills/up-skill && git pull
 
 # 或安装到当前项目（在 git 仓库根目录执行）
 mkdir -p .claude/skills
@@ -78,11 +81,11 @@ git clone https://github.com/jiemojiemo/up-skill ~/.codex/skills/up-skill
 cd ~/.claude/skills/up-skill && uv sync
 ```
 
-> 自动采集依赖 `yt-dlp`，B 站需要 Chrome 已登录 B 站。无官方字幕时会用 Whisper 转录。详见 [INSTALL.md](INSTALL.md)。
+> 自动采集依赖 `yt-dlp`，B 站需要 Chrome 已登录 B 站。无官方字幕时会用 Whisper ASR 转录（耗时约等于视频时长，10 个视频可能需要几十分钟）。详见 [INSTALL.md](INSTALL.md)。
 
 ### 验证安装
 
-启动 Claude Code（终端输入 `claude`），然后输入 `/create-up`。如果看到 UP 主信息录入提示，说明 skill 已生效。
+启动 Claude Code（终端输入 `claude`），然后输入 `/create-up`。如果 Claude 开始问你 UP 主的名字，说明 skill 已生效。
 
 ---
 

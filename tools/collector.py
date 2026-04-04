@@ -31,6 +31,38 @@ from material_check import check_material_sufficiency
 
 CACHE_DIR = Path.home() / '.up-skill' / 'cache'
 
+_cookies_checked = False
+_cookies_ok = False
+
+
+def _reset_cookies_check():
+    """重置 cookies 检测状态（供测试使用）"""
+    global _cookies_checked, _cookies_ok
+    _cookies_checked = False
+    _cookies_ok = False
+
+
+def _check_cookies():
+    """检测 Chrome cookies 是否可读，只检测一次"""
+    global _cookies_checked, _cookies_ok
+    if _cookies_checked:
+        return _cookies_ok
+    _cookies_checked = True
+    try:
+        result = subprocess.run(
+            ['yt-dlp', '--cookies-from-browser', 'chrome', '--dump-json',
+             '--playlist-items', '0', 'https://www.bilibili.com'],
+            capture_output=True, timeout=15,
+        )
+        _cookies_ok = result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        _cookies_ok = False
+    if _cookies_ok:
+        print('🍪 已读取 Chrome cookies')
+    else:
+        print('⚠️  未能读取 Chrome cookies，部分视频字幕可能无法获取（确保 Chrome 已登录 B 站）')
+    return _cookies_ok
+
 
 def get_cache_dir(slug: str) -> Path:
     d = CACHE_DIR / slug / 'transcripts'
@@ -93,6 +125,7 @@ def collect_from_videos(input_path: Path, slug: str, engine: str | None = None) 
 
 def download_subtitles(url: str, cache: Path, engine: str | None = None) -> list[Path]:
     """用 yt-dlp 下载字幕，优先官方字幕，没有则自动字幕"""
+    _check_cookies()
     print(f'  下载字幕：{url}')
     existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
     cmd = [
@@ -111,14 +144,13 @@ def download_subtitles(url: str, cache: Path, engine: str | None = None) -> list
         print('❌ 未找到 yt-dlp，请先安装：brew install yt-dlp', file=sys.stderr)
         return []
     except subprocess.CalledProcessError:
-        # 字幕下载失败，尝试下载视频再 ASR
-        print('  官方字幕不可用，尝试 ASR ...')
+        print('  该视频无官方/自动字幕，fallback 到 Whisper ASR（耗时约等于视频时长）...')
         return download_and_transcribe(url, cache, engine=engine)
 
     # 只看新增的字幕文件
     new_subs = list((set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))) - existing)
     if not new_subs:
-        print('  未找到字幕文件，尝试 ASR ...')
+        print('  未找到字幕文件，fallback 到 Whisper ASR（耗时约等于视频时长）...')
         return download_and_transcribe(url, cache, engine=engine)
     return new_subs
 
@@ -187,6 +219,7 @@ async def async_download_subtitles(
     url: str, cache: Path, engine: str | None, asr_queue: asyncio.Queue,
 ) -> list[Path]:
     """异步下载字幕，无字幕时将音频下载任务放入 ASR 队列"""
+    _check_cookies()
     await _aprint(f'  下载字幕：{url}')
     existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
     cmd = [
@@ -205,13 +238,13 @@ async def async_download_subtitles(
         await _aprint('❌ 未找到 yt-dlp，请先安装：brew install yt-dlp')
         return []
     except subprocess.CalledProcessError:
-        await _aprint('  官方字幕不可用，排队 ASR ...')
+        await _aprint('  该视频无官方/自动字幕，排队 Whisper ASR（耗时约等于视频时长）...')
         await asr_queue.put((url, cache, engine))
         return []
 
     new_subs = list((set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))) - existing)
     if not new_subs:
-        await _aprint('  未找到字幕文件，排队 ASR ...')
+        await _aprint('  未找到字幕文件，排队 Whisper ASR（耗时约等于视频时长）...')
         await asr_queue.put((url, cache, engine))
         return []
     return new_subs
@@ -310,6 +343,7 @@ async def async_collect_from_urls(
 
 def list_space_videos(space_url: str) -> list[dict]:
     """列出 UP 主主页的所有视频"""
+    _check_cookies()
     print(f'正在获取视频列表：{space_url}')
     cmd = [
         'yt-dlp', '--flat-playlist', '--dump-json',
