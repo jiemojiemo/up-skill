@@ -96,7 +96,7 @@ class TestReadmeSubcommands:
     def test_HasUsageExamples(self):
         """README 应该有用法示例"""
         content = _read("README.md")
-        assert "/bidao" in content
+        assert "/ying_shi_ju_feng" in content
 
 
 # ── merger.md ────────────────────────────────────────────────────────────────
