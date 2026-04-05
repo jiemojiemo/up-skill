@@ -5,7 +5,7 @@
 > *"三分钟带你看完这个 README，一键三连的我都蒸馏了"*
 
 [![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-blue.svg)](https://python.org)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet)](https://claude.ai/code)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-compatible-blueviolet)](https://github.com/anthropics/agent-skills)
 
 <br>
 
@@ -45,53 +45,42 @@
 
 ## 前置条件
 
-这是一个 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill，需要：
-
-1. 安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI（终端输入 `claude` 启动）
-2. 安装 [uv](https://docs.astral.sh/uv/)（Python 包管理，`curl -LsSf https://astral.sh/uv/install.sh | sh`）
+1. 安装 [uv](https://docs.astral.sh/uv/)（Python 包管理，`curl -LsSf https://astral.sh/uv/install.sh | sh`）
+2. 安装一个支持 [Agent Skills](https://github.com/anthropics/agent-skills) 的 AI Agent（如 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)、[Codex CLI](https://github.com/openai/codex) 等）
 3. B 站自动采集需要 Chrome 已登录 B 站（yt-dlp 读取 cookies）
 
 ## 安装
 
-### Claude Code
-
-> Claude Code 从 `~/.claude/skills/` 或项目内 `.claude/skills/` 查找 skill。
-
 ```bash
-# 首次安装到全局（所有项目都能用，推荐）
-git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
-
-# 已安装过？更新到最新版
-cd ~/.claude/skills/up-skill && git pull
-
-# 或安装到当前项目（在 git 仓库根目录执行）
-mkdir -p .claude/skills
-git clone https://github.com/jiemojiemo/up-skill .claude/skills/up-skill
+git clone https://github.com/jiemojiemo/up-skill
+cd up-skill
+uv sync
 ```
 
-### Codex
+根据你使用的 Agent 选择安装命令：
 
 ```bash
-git clone https://github.com/jiemojiemo/up-skill ~/.codex/skills/up-skill
+# Claude Code
+./install.sh install_claude
+
+# Codex CLI
+./install.sh install_codex
+
+# 同时装多个
+./install.sh install_claude && ./install.sh install_codex
 ```
 
-### 依赖（可选，自动采集需要）
-
-```bash
-cd ~/.claude/skills/up-skill && uv sync
-```
-
-> 自动采集依赖 `yt-dlp`，B 站需要 Chrome 已登录 B 站。无官方字幕时会用 Whisper ASR 转录（耗时约等于视频时长，10 个视频可能需要几十分钟）。详见 [INSTALL.md](INSTALL.md)。
+> 已安装过？`git pull && ./install.sh install_claude` 更新到最新版。
 
 ### 验证安装
 
-启动 Claude Code（终端输入 `claude`），然后输入 `/create-up`。如果 Claude 开始问你 UP 主的名字，说明 skill 已生效。
+启动你的 Agent，输入 `/create-up`。如果开始问你 UP 主的名字，说明安装成功。
 
 ---
 
 ## 使用
 
-在 Claude Code 对话中输入（不是在终端里）：
+在 Agent 对话中输入（不是在终端里）：
 
 ```
 /create-up
@@ -175,7 +164,12 @@ cd ~/.claude/skills/up-skill && uv sync
 ```
 up-skill/
 ├── SKILL.md              # Skill 入口（name: create-up）
+├── install.sh            # 多 Agent 安装脚本
 ├── pyproject.toml        # 项目配置与依赖
+├── skills/               # 独立管理 Skill
+│   ├── list-ups/         #   /list-ups
+│   ├── update-up/        #   /update-up
+│   └── delete-up/        #   /delete-up
 ├── prompts/              # Prompt 模板
 │   ├── intake.md         #   信息录入
 │   ├── persona_analyzer.md / persona_builder.md
@@ -189,12 +183,13 @@ up-skill/
 │   ├── subtitle_parser.py #  字幕解析
 │   ├── asr_engine.py     #   Whisper ASR
 │   ├── skill_writer.py   #   Skill 文件管理
+│   ├── install_helper.py #   安装辅助
 │   ├── cache_manager.py  #   缓存管理
 │   ├── incremental.py    #   增量更新
 │   ├── material_check.py #   素材完整性检查
 │   └── text_cleaner.py   #   文本清洗
 ├── tests/                # 单元测试
-└── ups/                  # 生成的 UP 主 Skill（gitignored）
+└── ups/                  # 本地开发用（gitignored）
 ```
 
 ---
