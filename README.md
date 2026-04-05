@@ -51,6 +51,15 @@
 
 ## 安装
 
+懒得看下面的步骤？直接把这个链接丢给你的 Agent，让它帮你装：
+
+```
+帮我安装这个 skill：https://github.com/jiemojiemo/up-skill
+```
+
+<details>
+<summary>手动安装</summary>
+
 ```bash
 git clone https://github.com/jiemojiemo/up-skill
 cd up-skill
@@ -71,6 +80,8 @@ uv sync
 ```
 
 > 已安装过？`git pull && ./install.sh install_claude` 更新到最新版。
+
+</details>
 
 ### 验证安装
 
