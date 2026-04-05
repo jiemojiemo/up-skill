@@ -207,7 +207,7 @@ class TestSpaceCollection:
 
         with patch("collector.subprocess.run", return_value=mock_result), \
              patch("collector.CACHE_DIR", cache_base), \
-             patch("collector.download_subtitles", return_value=[]) as mock_dl:
+             patch("collector.async_download_subtitles", return_value=[]) as mock_dl:
             collect_from_space(SPACE_URL, "test_up", limit=3, yes=True)
         assert mock_dl.call_count == 3
 
@@ -218,7 +218,7 @@ class TestSpaceCollection:
 
         with patch("collector.subprocess.run", return_value=mock_result), \
              patch("collector.CACHE_DIR", cache_base), \
-             patch("collector.download_subtitles", return_value=[]) as mock_dl:
+             patch("collector.async_download_subtitles", return_value=[]) as mock_dl:
             collect_from_space(SPACE_URL, "test_up", limit=5, yes=True)
         assert mock_dl.call_count == 5
         # 每次调用的第一个参数应该是视频 URL
@@ -271,23 +271,24 @@ class TestDownloadAndTranscribe:
     def test_DownloadAndTranscribe_CallsAsrTranscribe(self, tmp_path):
         cache = tmp_path / "cache"
         cache.mkdir()
+        vid = "BV1testASR"
 
         def fake_run(cmd, **kwargs):
-            (cache / "tmp_audio.wav").write_text("fake", encoding="utf-8")
+            (cache / f"{vid}.wav").write_text("fake", encoding="utf-8")
             return MagicMock(returncode=0)
 
         with patch("collector.subprocess.run", side_effect=fake_run), \
              patch("collector.asr_transcribe", return_value=None) as mock_asr:
-            download_and_transcribe("https://example.com/video", cache)
+            download_and_transcribe(f"https://www.bilibili.com/video/{vid}", cache)
         mock_asr.assert_called_once()
-        # 第一个参数是音频路径
         audio_arg = mock_asr.call_args[0][0]
-        assert audio_arg.name == "tmp_audio.wav"
+        assert audio_arg.name == f"{vid}.wav"
 
     def test_DownloadAndTranscribe_CleansUpTempAudio(self, tmp_path):
         cache = tmp_path / "cache"
         cache.mkdir()
-        audio = cache / "tmp_audio.wav"
+        vid = "BV1testClean"
+        audio = cache / f"{vid}.wav"
 
         def fake_run(cmd, **kwargs):
             audio.write_text("fake", encoding="utf-8")
@@ -295,7 +296,7 @@ class TestDownloadAndTranscribe:
 
         with patch("collector.subprocess.run", side_effect=fake_run), \
              patch("collector.asr_transcribe", return_value=None):
-            download_and_transcribe("https://example.com/video", cache)
+            download_and_transcribe(f"https://www.bilibili.com/video/{vid}", cache)
         assert not audio.exists()
 
 
