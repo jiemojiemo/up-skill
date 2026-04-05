@@ -506,6 +506,10 @@ def main():
     if not args.space and not args.urls and not args.input:
         parser.error('请指定 --input、--urls 或 --space 之一')
 
+    # 采集开始前清除旧的完成标记，防止 Agent 误判
+    old_marker = get_cache_dir(args.slug) / '.collection_done'
+    old_marker.unlink(missing_ok=True)
+
     if args.space:
         collect_from_space(args.space, args.slug, args.limit, yes=args.yes,
                            engine=args.engine, download_jobs=args.download_jobs,
@@ -537,6 +541,11 @@ def main():
     # 素材量检查
     result = check_material_sufficiency(cache)
     print(result['message'])
+
+    # 写入采集完成标记，供 Agent 程序化检查（防止提前进入分析步骤）
+    done_marker = cache / '.collection_done'
+    done_marker.write_text(f'done:{result["file_count"]}:{result["total_chars"]}\n')
+    print(f'✅ 已写入完成标记：{done_marker}')
 
     print('下一步：将缓存目录提供给 Claude 进行四层分析')
 

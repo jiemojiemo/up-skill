@@ -119,6 +119,14 @@ allowed-tools: Read, Write, Edit, Bash
 > 只有看到 `✅ 采集完成：共获取 X/Y 个字幕文件` 这行最终汇总时，才代表采集结束。
 > 中途的进度输出（如 `[7/20]`）不代表完成，不要提前进入 Step 3。
 
+> 🚫 **硬性门禁**：进入 Step 3 之前，**必须**先运行以下检查：
+> ```bash
+> cat ~/.up-skill/cache/{slug}/transcripts/.collection_done
+> ```
+> - 如果文件存在且内容以 `done:` 开头 → 采集已完成，可以进入 Step 3
+> - 如果文件不存在或命令报错 → 采集未完成，**禁止进入 Step 3**，必须继续等待或重新运行 collector
+> - Bash timeout 不等于采集完成，必须用此标记文件确认
+
 **最低要求**：至少提供 [A]、[D] 或 [E] 之一。原材料越多，四层分身越准确。
 
 ### Step 3：四层分析
