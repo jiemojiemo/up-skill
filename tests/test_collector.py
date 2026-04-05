@@ -20,6 +20,9 @@ from collector import (
     is_space_url,
     get_cache_dir,
     collect_from_subtitles,
+    _extract_video_id,
+    download_subtitles,
+    download_and_transcribe,
 )
 
 
@@ -115,3 +118,93 @@ def test_CollectFromSubtitles_IgnoresNonSubtitleFiles(tmp_path):
 
     assert len(result) == 1
     assert result[0].suffix == ".srt"
+
+
+# ── download_subtitles 缓存命中 ──────────────────────────────────────────────
+
+def test_DownloadSubtitles_SkipsWhenCacheHit(tmp_path):
+    """缓存目录已有该 BV 号的字幕文件时，应直接返回，不调用 yt-dlp"""
+    cache = tmp_path / "transcripts"
+    cache.mkdir()
+    # 预置一个 BV 号对应的字幕文件
+    cached_file = cache / "BV1abc123.zh-Hans.srt"
+    cached_file.write_text("已缓存的字幕", encoding="utf-8")
+
+    url = "https://www.bilibili.com/video/BV1abc123"
+
+    with patch("collector.get_cache_dir", return_value=cache), \
+         patch("collector._check_cookies"), \
+         patch("subprocess.run") as mock_run:
+        result = download_subtitles(url, cache)
+
+    # 不应调用 yt-dlp
+    mock_run.assert_not_called()
+    # 应返回缓存的文件
+    assert len(result) == 1
+    assert "BV1abc123" in result[0].name
+
+
+def test_DownloadSubtitles_DownloadsWhenNoCacheHit(tmp_path):
+    """缓存目录没有该 BV 号的字幕时，应正常调用 yt-dlp"""
+    cache = tmp_path / "transcripts"
+    cache.mkdir()
+
+    url = "https://www.bilibili.com/video/BV1xyz789"
+
+    def fake_ytdlp_run(cmd, **kwargs):
+        # 模拟 yt-dlp 下载了一个字幕文件
+        (cache / "BV1xyz789.zh-Hans.srt").write_text("新字幕", encoding="utf-8")
+
+    with patch("collector._check_cookies"), \
+         patch("subprocess.run", side_effect=fake_ytdlp_run):
+        result = download_subtitles(url, cache)
+
+    assert len(result) >= 1
+
+
+# ── download_and_transcribe 缓存命中 ────────────────────────────────────────
+
+def test_DownloadAndTranscribe_SkipsWhenCacheHit(tmp_path):
+    """缓存目录已有该 BV 号的转录文件时，应直接返回，不下载音频"""
+    cache = tmp_path / "transcripts"
+    cache.mkdir()
+    cached_file = cache / "BV1abc123.srt"
+    cached_file.write_text("已缓存的转录", encoding="utf-8")
+
+    url = "https://www.bilibili.com/video/BV1abc123"
+
+    with patch("subprocess.run") as mock_run, \
+         patch("collector.asr_transcribe") as mock_asr:
+        result = download_and_transcribe(url, cache)
+
+    mock_run.assert_not_called()
+    mock_asr.assert_not_called()
+    assert len(result) == 1
+    assert "BV1abc123" in result[0].name
+
+
+# ── async_download_subtitles 缓存命中 ───────────────────────────────────────
+
+def test_AsyncDownloadSubtitles_SkipsWhenCacheHit(tmp_path):
+    """异步版：缓存命中时跳过下载"""
+    import asyncio
+    from collector import async_download_subtitles
+
+    cache = tmp_path / "transcripts"
+    cache.mkdir()
+    cached_file = cache / "BV1abc123.zh-Hans.srt"
+    cached_file.write_text("已缓存的字幕", encoding="utf-8")
+
+    url = "https://www.bilibili.com/video/BV1abc123"
+
+    async def _run():
+        asr_queue = asyncio.Queue()
+        with patch("collector._check_cookies"), \
+             patch("collector._async_run_ytdlp") as mock_ytdlp:
+            result = await async_download_subtitles(url, cache, None, asr_queue)
+        mock_ytdlp.assert_not_called()
+        return result
+
+    result = asyncio.run(_run())
+    assert len(result) == 1
+    assert "BV1abc123" in result[0].name

@@ -123,8 +123,20 @@ def collect_from_videos(input_path: Path, slug: str, engine: str | None = None) 
 
 # ── 模式 3：视频链接 → yt-dlp ─────────────────────────────────────────────────
 
+def _find_cached(vid: str, cache: Path) -> list[Path]:
+    """检查缓存目录中是否已有该视频 ID 的字幕/转录文件"""
+    hits = [f for f in cache.glob(f'{vid}*') if f.suffix in ('.srt', '.vtt', '.txt')]
+    return hits
+
+
 def download_subtitles(url: str, cache: Path, engine: str | None = None) -> list[Path]:
     """用 yt-dlp 下载字幕，优先官方字幕，没有则自动字幕"""
+    vid = _extract_video_id(url)
+    cached = _find_cached(vid, cache)
+    if cached:
+        print(f'  缓存命中，跳过下载：{vid}（{len(cached)} 个文件）')
+        return cached
+
     _check_cookies()
     print(f'  下载字幕：{url}')
     existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
@@ -167,6 +179,11 @@ def _extract_video_id(url: str) -> str:
 def download_and_transcribe(url: str, cache: Path, engine: str | None = None) -> list[Path]:
     """下载最低质量音频（16kHz 单声道 wav）并用 ASR 转录"""
     vid = _extract_video_id(url)
+    cached = _find_cached(vid, cache)
+    if cached:
+        print(f'  缓存命中，跳过转录：{vid}（{len(cached)} 个文件）')
+        return cached
+
     audio_path = cache / f'{vid}.wav'
     cmd = [
         'yt-dlp', '-f', 'worstaudio', '-x', '--audio-format', 'wav',
@@ -219,6 +236,12 @@ async def async_download_subtitles(
     url: str, cache: Path, engine: str | None, asr_queue: asyncio.Queue,
 ) -> list[Path]:
     """异步下载字幕，无字幕时将音频下载任务放入 ASR 队列"""
+    vid = _extract_video_id(url)
+    cached = _find_cached(vid, cache)
+    if cached:
+        await _aprint(f'  缓存命中，跳过下载：{vid}（{len(cached)} 个文件）')
+        return cached
+
     _check_cookies()
     await _aprint(f'  下载字幕：{url}')
     existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
@@ -255,6 +278,11 @@ async def async_download_and_transcribe(
 ) -> list[Path]:
     """异步下载音频并 ASR 转录"""
     vid = _extract_video_id(url)
+    cached = _find_cached(vid, cache)
+    if cached:
+        await _aprint(f'  缓存命中，跳过转录：{vid}（{len(cached)} 个文件）')
+        return cached
+
     audio_path = cache / f'{vid}.wav'
     cmd = [
         'yt-dlp', '-f', 'worstaudio', '-x', '--audio-format', 'wav',
