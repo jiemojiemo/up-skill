@@ -335,7 +335,7 @@ class TestAsrEngineSelection:
     def test_Transcribe_SkipsWhenCacheHit(self, tmp_path):
         video = tmp_path / "test.mp4"
         video.write_text("fake")
-        cached = tmp_path / "test.srt"
+        cached = tmp_path / "test.txt"
         cached.write_text("cached")
 
         mock_backend = MagicMock()

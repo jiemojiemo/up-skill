@@ -60,12 +60,12 @@ def select_engine(override: Optional[str] = None) -> str:
 
 def _transcribe_mlx(video_path: Path, output_dir: Path, language: str) -> Optional[Path]:
     """mlx-whisper subprocess 后端"""
-    out_name = video_path.stem + ".srt"
+    out_name = video_path.stem + ".txt"
     out_path = output_dir / out_name
     print(f"  [mlx-whisper] 转录中：{video_path.name} ...")
     try:
         subprocess.run(
-            ["mlx_whisper", str(video_path), "--output-format", "srt",
+            ["mlx_whisper", str(video_path), "--output-format", "txt",
              "--output-dir", str(output_dir), "--language", language],
             check=True, capture_output=True,
         )
@@ -80,7 +80,7 @@ def _transcribe_mlx(video_path: Path, output_dir: Path, language: str) -> Option
 
 def _transcribe_faster(video_path: Path, output_dir: Path, language: str) -> Optional[Path]:
     """faster-whisper Python API 后端"""
-    out_name = video_path.stem + ".srt"
+    out_name = video_path.stem + ".txt"
     out_path = output_dir / out_name
     print(f"  [faster-whisper] 转录中：{video_path.name} ...")
     try:
@@ -99,10 +99,8 @@ def _transcribe_faster(video_path: Path, output_dir: Path, language: str) -> Opt
         segments, _ = model.transcribe(str(video_path), language=language)
 
         with open(out_path, "w", encoding="utf-8") as f:
-            for i, seg in enumerate(segments, 1):
-                start = _format_timestamp(seg.start)
-                end = _format_timestamp(seg.end)
-                f.write(f"{i}\n{start} --> {end}\n{seg.text.strip()}\n\n")
+            for seg in segments:
+                f.write(seg.text.strip() + "\n")
         return out_path
     except Exception as e:
         print(f"❌ faster-whisper 转录失败：{e}", file=sys.stderr)
@@ -111,12 +109,12 @@ def _transcribe_faster(video_path: Path, output_dir: Path, language: str) -> Opt
 
 def _transcribe_whisper(video_path: Path, output_dir: Path, language: str) -> Optional[Path]:
     """openai-whisper subprocess 后端（fallback）"""
-    out_name = video_path.stem + ".srt"
+    out_name = video_path.stem + ".txt"
     out_path = output_dir / out_name
     print(f"  [whisper] 转录中：{video_path.name} ...")
     try:
         subprocess.run(
-            ["whisper", str(video_path), "--output_format", "srt",
+            ["whisper", str(video_path), "--output_format", "txt",
              "--output_dir", str(output_dir), "--language", language],
             check=True, capture_output=True,
         )
@@ -160,9 +158,9 @@ def transcribe(
         engine: 手动指定引擎 "mlx"|"faster"|"whisper"，None 则自动选择
 
     Returns:
-        生成的 .srt 文件路径，失败返回 None
+        生成的 .txt 文件路径，失败返回 None
     """
-    out_path = output_dir / (video_path.stem + ".srt")
+    out_path = output_dir / (video_path.stem + ".txt")
     if out_path.exists():
         print(f"  缓存命中，跳过转录：{out_path.name}")
         return out_path
@@ -176,11 +174,11 @@ def transcribe(
 
 async def _async_transcribe_mlx(video_path: Path, output_dir: Path, language: str) -> Optional[Path]:
     """mlx-whisper async subprocess 后端"""
-    out_path = output_dir / (video_path.stem + ".srt")
+    out_path = output_dir / (video_path.stem + ".txt")
     print(f"  [mlx-whisper] 转录中：{video_path.name} ...")
     try:
         proc = await asyncio.create_subprocess_exec(
-            "mlx_whisper", str(video_path), "--output-format", "srt",
+            "mlx_whisper", str(video_path), "--output-format", "txt",
             "--output-dir", str(output_dir), "--language", language,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )
@@ -196,11 +194,11 @@ async def _async_transcribe_mlx(video_path: Path, output_dir: Path, language: st
 
 async def _async_transcribe_whisper(video_path: Path, output_dir: Path, language: str) -> Optional[Path]:
     """openai-whisper async subprocess 后端"""
-    out_path = output_dir / (video_path.stem + ".srt")
+    out_path = output_dir / (video_path.stem + ".txt")
     print(f"  [whisper] 转录中：{video_path.name} ...")
     try:
         proc = await asyncio.create_subprocess_exec(
-            "whisper", str(video_path), "--output_format", "srt",
+            "whisper", str(video_path), "--output_format", "txt",
             "--output_dir", str(output_dir), "--language", language,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )
@@ -237,7 +235,7 @@ async def async_transcribe(
     engine: Optional[str] = None,
 ) -> Optional[Path]:
     """异步统一转录接口，缓存逻辑与 sync 版一致"""
-    out_path = output_dir / (video_path.stem + ".srt")
+    out_path = output_dir / (video_path.stem + ".txt")
     if out_path.exists():
         print(f"  缓存命中，跳过转录：{out_path.name}")
         return out_path

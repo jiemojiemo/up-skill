@@ -108,7 +108,7 @@ def test_FormatTimestamp_FormatsCorrectly():
 def test_Transcribe_ReturnsCachedFile_WhenExists(tmp_path):
     video = tmp_path / "test.mp4"
     video.write_text("fake")
-    cached = tmp_path / "test.srt"
+    cached = tmp_path / "test.txt"
     cached.write_text("cached subtitle")
 
     result = transcribe(video, tmp_path)
@@ -149,7 +149,90 @@ def test_Transcribe_PassesLanguageToBackend(tmp_path):
         mock_w.assert_called_once_with(video, tmp_path, "en")
 
 
-# ── 后端错误处理 ─────────────────────────────────────────────────────────────
+# ── 输出格式：纯文本 txt ─────────────────────────────────────────────────────
+
+def test_Transcribe_CacheCheckUseTxtExtension(tmp_path):
+    """缓存命中应检查 .txt 而非 .srt"""
+    video = tmp_path / "test.mp4"
+    video.write_text("fake")
+    cached_txt = tmp_path / "test.txt"
+    cached_txt.write_text("cached text")
+
+    result = transcribe(video, tmp_path)
+    assert result == cached_txt
+
+
+def test_Transcribe_DoesNotCacheHitOnSrt(tmp_path):
+    """旧的 .srt 文件不应被当作缓存命中"""
+    video = tmp_path / "test.mp4"
+    video.write_text("fake")
+    old_srt = tmp_path / "test.srt"
+    old_srt.write_text("old srt")
+
+    mock_backend = MagicMock(return_value=None)
+    with patch("asr_engine.select_engine", return_value="mlx"), \
+         patch.dict("asr_engine._BACKENDS", {"mlx": mock_backend}):
+        transcribe(video, tmp_path)
+    # 应该调用后端，说明没有缓存命中
+    mock_backend.assert_called_once()
+
+
+def test_TranscribeMlx_UsesTxtOutputFormat(tmp_path):
+    """mlx-whisper 应使用 --output-format txt"""
+    video = tmp_path / "test.mp4"
+    video.write_text("fake")
+
+    with patch("asr_engine.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        from asr_engine import _transcribe_mlx
+        _transcribe_mlx(video, tmp_path, "zh")
+
+    cmd = mock_run.call_args[0][0]
+    assert "txt" in cmd
+    assert "srt" not in cmd
+
+
+def test_TranscribeWhisper_UsesTxtOutputFormat(tmp_path):
+    """openai-whisper 应使用 --output_format txt"""
+    video = tmp_path / "test.mp4"
+    video.write_text("fake")
+
+    with patch("asr_engine.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        from asr_engine import _transcribe_whisper
+        _transcribe_whisper(video, tmp_path, "zh")
+
+    cmd = mock_run.call_args[0][0]
+    assert "txt" in cmd
+    assert "srt" not in cmd
+
+
+def test_TranscribeFaster_OutputsPlainText(tmp_path):
+    """faster-whisper 应输出纯文本，不含时间戳"""
+    video = tmp_path / "test.mp4"
+    video.write_text("fake")
+
+    mock_model_cls = MagicMock()
+    mock_model = MagicMock()
+    seg1 = MagicMock(text="你好世界")
+    seg2 = MagicMock(text="测试文本")
+    mock_model.transcribe.return_value = ([seg1, seg2], None)
+    mock_model_cls.return_value = mock_model
+
+    fake_module = MagicMock()
+    fake_module.WhisperModel = mock_model_cls
+
+    with patch.dict("sys.modules", {"faster_whisper": fake_module}):
+        from asr_engine import _transcribe_faster
+        result = _transcribe_faster(video, tmp_path, "zh")
+
+    assert result is not None
+    assert result.suffix == ".txt"
+    content = result.read_text(encoding="utf-8")
+    # 不应包含 SRT 时间戳格式
+    assert "-->" not in content
+    # 应包含文本内容
+    assert "你好世界" in content
 
 def test_TranscribeMlx_ReturnsNone_WhenCommandNotFound(tmp_path):
     video = tmp_path / "test.mp4"
