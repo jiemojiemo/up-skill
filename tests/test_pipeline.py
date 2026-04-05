@@ -324,7 +324,7 @@ class TestAsrEngineSelection:
     def test_Transcribe_DispatchesToSelectedBackend(self, tmp_path):
         video = tmp_path / "test.mp4"
         video.write_text("fake")
-        expected = tmp_path / "test.srt"
+        expected = tmp_path / "test.txt"
 
         mock_backend = MagicMock(return_value=expected)
         with patch("asr_engine.select_engine", return_value="mlx"), \

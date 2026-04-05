@@ -465,7 +465,7 @@ def main():
     group.add_argument('--space', help='B 站 UP 主主页 URL（space.bilibili.com/...）')
 
     parser.add_argument('--limit', type=int, default=20, help='主页模式默认处理视频数（默认 20）')
-    parser.add_argument('--engine', choices=['mlx', 'faster', 'whisper'], help='手动指定 ASR 引擎')
+    parser.add_argument('--engine', choices=['mlx', 'faster', 'whisper', 'cohere'], help='手动指定 ASR 引擎')
     parser.add_argument('--yes', '-y', action='store_true', help='跳过交互确认，直接使用 --limit 数量')
     parser.add_argument('--list-cache', action='store_true', help='列出已缓存的字幕文件')
     parser.add_argument('--clean', action='store_true', help='清理指定 slug 的缓存')

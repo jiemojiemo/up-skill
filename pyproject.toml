@@ -11,6 +11,17 @@ dependencies = [
     "yt-dlp>=2026.3.17",
 ]
 
+[project.optional-dependencies]
+cohere-asr = [
+    "transformers>=5.4.0",
+    "torch",
+    "accelerate",
+    "soundfile",
+    "librosa",
+    "sentencepiece",
+    "protobuf",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
