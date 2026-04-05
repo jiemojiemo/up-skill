@@ -51,6 +51,10 @@ allowed-tools: Read, Write, Edit, Bash
 
 **基础目录**：Skill 文件写入 `{{UPS_DIR}}/{slug}/`。
 
+> ⚠️ **路径警告**：所有生成的文件必须写入 `{{UPS_DIR}}/{slug}/` 目录。
+> 不要写入项目源码目录（如 `ups/`、`./ups/`）或 `${SKILL_DIR}` 下的任何子目录。
+> `${SKILL_DIR}` 是工具代码所在目录，不是输出目录。输出目录是 `{{UPS_DIR}}/`。
+
 ---
 
 ## 主流程：创建新 UP 主 Skill
@@ -125,6 +129,8 @@ allowed-tools: Read, Write, Edit, Bash
 
 ### Step 4：生成四层文件
 
+> ⚠️ **再次确认输出路径**：下面所有 `Write` 操作的目标路径必须是 `{{UPS_DIR}}/{slug}/`，不是 `${SKILL_DIR}/ups/` 或其他路径。
+
 分析确认后，依次生成：
 
 1. 参考 `${SKILL_DIR}/prompts/persona_builder.md` → 写入 `{{UPS_DIR}}/{slug}/persona.md`
@@ -136,7 +142,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 参考 `${SKILL_DIR}/prompts/merger.md`，将四层合并为 `{{UPS_DIR}}/{slug}/SKILL.md`。
 
-同时写入 `{{UPS_DIR}}/{slug}/meta.json`：
+同时写入 `{{UPS_DIR}}/{slug}/meta.json`（注意：不是 `${SKILL_DIR}` 下）：
 
 ```json
 {
