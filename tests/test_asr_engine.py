@@ -248,14 +248,25 @@ def test_TranscribeCohere_CallsTranscribeKit(tmp_path):
     video = tmp_path / "test.mp4"
     video.write_text("fake")
 
-    with patch("transcribe_kit.app.transcribe_demo", return_value="你好世界") as mock_tk:
-        from asr_engine import _transcribe_cohere
-        result = _transcribe_cohere(video, tmp_path, "zh")
+    import asr_engine
+    # 重置模型缓存，确保测试隔离
+    asr_engine._cohere_processor = None
+    asr_engine._cohere_model = None
+
+    mock_processor = object()
+    mock_model = object()
+    with patch("transcribe_kit.app.build_processor", return_value=mock_processor), \
+         patch("transcribe_kit.app.build_model", return_value=mock_model), \
+         patch("transcribe_kit.app.transcribe_demo", return_value="你好世界") as mock_tk:
+        result = asr_engine._transcribe_cohere(video, tmp_path, "zh")
 
     assert result is not None
     assert result.suffix == ".txt"
     assert result.read_text(encoding="utf-8") == "你好世界"
-    mock_tk.assert_called_once_with(audio_path=str(video), language="zh")
+    mock_tk.assert_called_once_with(
+        processor=mock_processor, model=mock_model,
+        audio_path=str(video), language="zh",
+    )
 
 
 def test_TranscribeMlx_ReturnsNone_WhenError(tmp_path):

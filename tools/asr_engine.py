@@ -123,13 +123,31 @@ def _transcribe_whisper(video_path: Path, output_dir: Path, language: str) -> Op
         return None
 
 
+_cohere_processor = None
+_cohere_model = None
+
+
+def _get_cohere_model():
+    """懒加载 Cohere ASR 模型，只加载一次"""
+    global _cohere_processor, _cohere_model
+    if _cohere_processor is None:
+        from transcribe_kit.app import build_processor, build_model
+        print("  [cohere] 加载模型中（仅首次）...")
+        _cohere_processor = build_processor()
+        _cohere_model = build_model()
+    return _cohere_processor, _cohere_model
+
+
 def _transcribe_cohere(video_path: Path, output_dir: Path, language: str) -> Optional[Path]:
-    """Cohere ASR 后端（via transcribe-kit）"""
+    """Cohere ASR 后端（via transcribe-kit），模型只加载一次"""
     out_path = output_dir / (video_path.stem + ".txt")
     print(f"  [cohere] 转录中：{video_path.name} ...")
     try:
         from transcribe_kit.app import transcribe_demo
+        processor, model = _get_cohere_model()
         text = transcribe_demo(
+            processor=processor,
+            model=model,
             audio_path=str(video_path),
             language=language,
         )
