@@ -38,38 +38,6 @@ _BILIBILI_HEADERS = [
     '--add-header', 'Referer: https://www.bilibili.com',
 ]
 
-_cookies_checked = False
-_cookies_ok = False
-
-
-def _reset_cookies_check():
-    """重置 cookies 检测状态（供测试使用）"""
-    global _cookies_checked, _cookies_ok
-    _cookies_checked = False
-    _cookies_ok = False
-
-
-def _check_cookies():
-    """检测 Chrome cookies 是否可读，只检测一次"""
-    global _cookies_checked, _cookies_ok
-    if _cookies_checked:
-        return _cookies_ok
-    _cookies_checked = True
-    try:
-        result = subprocess.run(
-            ['yt-dlp', '--cookies-from-browser', 'chrome', '--dump-json',
-             '--playlist-items', '0', 'https://www.bilibili.com'],
-            capture_output=True, timeout=15,
-        )
-        _cookies_ok = result.returncode == 0
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        _cookies_ok = False
-    if _cookies_ok:
-        print('🍪 已读取 Chrome cookies')
-    else:
-        print('⚠️  未能读取 Chrome cookies，部分视频字幕可能无法获取（确保 Chrome 已登录 B 站）')
-    return _cookies_ok
-
 
 def get_cache_dir(slug: str) -> Path:
     d = CACHE_DIR / slug / 'transcripts'
@@ -144,7 +112,6 @@ def download_subtitles(url: str, cache: Path, engine: str | None = None) -> list
         print(f'  缓存命中，跳过下载：{vid}（{len(cached)} 个文件）')
         return cached
 
-    _check_cookies()
     print(f'  下载字幕：{url}')
     existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
     cmd = [
@@ -251,7 +218,6 @@ async def async_download_subtitles(
         await _aprint(f'  缓存命中，跳过下载：{vid}（{len(cached)} 个文件）')
         return cached
 
-    _check_cookies()
     await _aprint(f'  下载字幕：{url}')
     existing = set(cache.glob('*.srt')) | set(cache.glob('*.vtt'))
     cmd = [
@@ -382,7 +348,6 @@ async def async_collect_from_urls(
 
 def list_space_videos(space_url: str) -> list[dict]:
     """列出 UP 主主页的所有视频（带退避重试 + fallback 提示）"""
-    _check_cookies()
     print(f'正在获取视频列表：{space_url}')
     cmd = [
         'yt-dlp', '--flat-playlist', '--dump-json',

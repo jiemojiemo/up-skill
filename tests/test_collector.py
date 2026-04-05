@@ -133,7 +133,6 @@ def test_DownloadSubtitles_SkipsWhenCacheHit(tmp_path):
     url = "https://www.bilibili.com/video/BV1abc123"
 
     with patch("collector.get_cache_dir", return_value=cache), \
-         patch("collector._check_cookies"), \
          patch("subprocess.run") as mock_run:
         result = download_subtitles(url, cache)
 
@@ -155,8 +154,7 @@ def test_DownloadSubtitles_DownloadsWhenNoCacheHit(tmp_path):
         # 模拟 yt-dlp 下载了一个字幕文件
         (cache / "BV1xyz789.zh-Hans.srt").write_text("新字幕", encoding="utf-8")
 
-    with patch("collector._check_cookies"), \
-         patch("subprocess.run", side_effect=fake_ytdlp_run):
+    with patch("subprocess.run", side_effect=fake_ytdlp_run):
         result = download_subtitles(url, cache)
 
     assert len(result) >= 1
@@ -199,8 +197,7 @@ def test_AsyncDownloadSubtitles_SkipsWhenCacheHit(tmp_path):
 
     async def _run():
         asr_queue = asyncio.Queue()
-        with patch("collector._check_cookies"), \
-             patch("collector._async_run_ytdlp") as mock_ytdlp:
+        with patch("collector._async_run_ytdlp") as mock_ytdlp:
             result = await async_download_subtitles(url, cache, None, asr_queue)
         mock_ytdlp.assert_not_called()
         return result
