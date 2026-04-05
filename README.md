@@ -47,7 +47,7 @@
 
 1. 安装 [uv](https://docs.astral.sh/uv/)（Python 包管理，`curl -LsSf https://astral.sh/uv/install.sh | sh`）
 2. 安装一个支持 [Agent Skills](https://github.com/anthropics/agent-skills) 的 AI Agent（如 [Claude Code](https://docs.anthropic.com/en/docs/claude-code)、[Codex CLI](https://github.com/openai/codex) 等）
-3. B 站自动采集需要 Chrome 已登录 B 站（yt-dlp 读取 cookies）
+3. B 站自动采集需要 Chrome 或 Firefox 已登录 B 站（yt-dlp 读取 cookies，已包含在依赖中）
 
 ## 安装
 
@@ -209,7 +209,7 @@ up-skill/
 
 - **素材质量决定分身质量**：自动采集 10+ 条视频字幕 > 手动描述
 - 建议优先采集：**观点输出型视频** > 教程类 > 纯 vlog
-- B 站自动采集需要 Chrome 已登录 B 站（yt-dlp 读取 cookies）
+- B 站自动采集需要 Chrome 或 Firefox 已登录 B 站（yt-dlp 读取 cookies，已包含在依赖中）
 - 字幕缓存在 `~/.up-skill/cache/{slug}/transcripts/`，下次蒸馏同一个 UP 主直接复用
 
 ---
