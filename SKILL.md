@@ -101,6 +101,7 @@ allowed-tools: Read, Write, Edit, Bash
 ```
 
 **[E] 自动采集流程**：
+0. 如果 Step 1 尚未收集 UP 主名字，先询问名字（用于生成 slug），再继续采集
 1. 先用 `--limit 1 --yes` 试探性调用 collector，从输出中获取频道视频总数
 2. 告知用户视频总数，询问要采集几个（建议至少 5-10 个，默认 20）
 3. 用户确认数量后，调用 `uv run --directory ${SKILL_DIR} python3 tools/collector.py --slug {slug} --space <url> --limit {用户指定数量} --yes`
