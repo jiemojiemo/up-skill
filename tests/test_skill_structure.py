@@ -45,6 +45,29 @@ class TestSkillLocation:
         assert not os.path.exists(path), ".claude-plugin/ should be removed"
 
 
+class TestSkillMdDynamicPaths:
+    """验证 SKILL.md 使用 {{UPS_DIR}} 占位符而非硬编码路径。"""
+
+    def test_skill_md_uses_ups_dir_placeholder(self):
+        path = os.path.join(PROJECT_ROOT, "SKILL.md")
+        content = open(path).read()
+        assert "{{UPS_DIR}}" in content
+
+    def test_skill_md_no_hardcoded_ups_path(self):
+        """不应包含 ./ups/ 硬编码路径"""
+        path = os.path.join(PROJECT_ROOT, "SKILL.md")
+        content = open(path).read()
+        assert "./ups/" not in content
+        assert "--base-dir ./ups" not in content
+
+    def test_skill_md_no_management_section(self):
+        """管理指令 section 已移至独立 skill"""
+        path = os.path.join(PROJECT_ROOT, "SKILL.md")
+        content = open(path).read()
+        assert "## 管理指令" not in content
+        assert "/delete-up {slug}" not in content
+
+
 class TestProjectDocs:
     """验证文档中的项目结构描述已更新。"""
 

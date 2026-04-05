@@ -1,17 +1,6 @@
 # up-skill 安装说明
 
-## 安装到 Claude Code
-
-```bash
-# 安装到当前项目
-mkdir -p .claude/skills
-git clone https://github.com/jiemojiemo/up-skill .claude/skills/up-skill
-
-# 或安装到全局
-git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
-```
-
-## 安装依赖
+## 前置依赖
 
 需要先安装 [uv](https://docs.astral.sh/uv/)：
 
@@ -19,11 +8,38 @@ git clone https://github.com/jiemojiemo/up-skill ~/.claude/skills/up-skill
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-然后安装项目依赖：
+## 安装
 
 ```bash
-cd ~/.claude/skills/up-skill   # 或你的 skill 安装路径
+git clone https://github.com/jiemojiemo/up-skill
+cd up-skill
 uv sync
+```
+
+然后根据你使用的 AI Agent 选择安装命令：
+
+```bash
+# Claude Code
+./install.sh install_claude
+
+# Codex CLI
+./install.sh install_codex
+
+# 同时安装到多个 Agent
+./install.sh install_claude && ./install.sh install_codex
+```
+
+安装后会注册以下 Skill：
+- `/create-up` — 创建 UP 主数字分身
+- `/list-ups` — 列出所有已生成的 UP 主
+- `/update-up` — 更新已有 UP 主（追加素材/纠错）
+- `/delete-up` — 删除 UP 主 Skill
+
+## 卸载
+
+```bash
+./install.sh uninstall_claude
+./install.sh uninstall_codex
 ```
 
 ## 外部工具
@@ -46,30 +62,12 @@ yt-dlp --cookies-from-browser chrome <url>
 
 已包含在 `uv sync` 中（openai-whisper、mlx-whisper、faster-whisper）。首次运行会自动下载模型（tiny 模型约 75MB）。
 
-## 快速验证
-
-```bash
-cd .claude/skills/up-skill
-
-# 列出已有 UP 主
-uv run python3 tools/skill_writer.py --action list --base-dir ./ups
-
-# 测试字幕解析
-uv run python3 tools/subtitle_parser.py --help
-
-# 测试采集器
-uv run python3 tools/collector.py --help
-
-# 跑单元测试
-uv run pytest tests/
-```
-
 ## 使用
 
-在 Claude Code 中说 `/create-up` 启动，或直接说：
+在 Agent 中说 `/create-up` 启动，或直接说：
 
 ```
 帮我蒸馏一个 UP 主，主页是 https://space.bilibili.com/946974
 ```
 
-生成的 UP 主 Skill 写入 `./ups/{slug}/`，默认不提交到 git（已加入 .gitignore）。
+生成的 UP 主 Skill 会自动注册到 Agent 的 skills 目录，全局可用。

@@ -22,7 +22,7 @@ allowed-tools: Read, Write, Edit, Bash
 
 ### 激活模式（对话内调用已生成的 UP 主）
 当用户说 `/{slug}` 或 `/{slug}-brainstorm` / `/{slug}-script` / `/{slug}-check` 时：
-1. 在 `./ups/` 目录下查找 `{slug}/SKILL.md`（如果用户之前指定了其他输出目录，也在该目录下查找）
+1. 在 `{{UPS_DIR}}/` 目录下查找 `{slug}/SKILL.md`
 2. 如果找到，用 `Read` 工具读取该 SKILL.md 的完整内容
 3. 将内容注入当前对话上下文，按照 SKILL.md 中的角色设定和子 Skill 行为规范运行
 4. 如果未找到，提示用户该 UP 主尚未生成，建议运行 `/create-up`
@@ -34,7 +34,7 @@ allowed-tools: Read, Write, Edit, Bash
 - `/update-up {slug}`
 
 ### 管理模式
-当用户说 `/list-ups` 时列出所有已生成的 UP 主。
+管理命令已拆为独立 Skill，无需在此处处理。用户可直接使用 `/list-ups`、`/update-up`、`/delete-up`。
 
 ---
 
@@ -47,9 +47,9 @@ allowed-tools: Read, Write, Edit, Bash
 | 解析 B 站字幕 JSON | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/subtitle_parser.py` |
 | 解析评论区导出 | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/comment_parser.py` |
 | 写入/更新 Skill 文件 | `Write` / `Edit` 工具 |
-| 列出已有 Skill | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/skill_writer.py --action list` |
+| 列出已有 Skill | 使用独立 Skill `/list-ups` |
 
-**基础目录**：Skill 文件写入 `./ups/{slug}/`（相对于本项目目录）。
+**基础目录**：Skill 文件写入 `{{UPS_DIR}}/{slug}/`。
 
 ---
 
@@ -126,16 +126,16 @@ allowed-tools: Read, Write, Edit, Bash
 
 分析确认后，依次生成：
 
-1. 参考 `${SKILL_DIR}/prompts/persona_builder.md` → 写入 `./ups/{slug}/persona.md`
-2. 参考 `${SKILL_DIR}/prompts/content_brain_builder.md` → 写入 `./ups/{slug}/content_brain.md`
-3. 参考 `${SKILL_DIR}/prompts/production_style_builder.md` → 写入 `./ups/{slug}/production_style.md`
-4. 参考 `${SKILL_DIR}/prompts/brand_guardrails_builder.md` → 写入 `./ups/{slug}/brand_guardrails.md`
+1. 参考 `${SKILL_DIR}/prompts/persona_builder.md` → 写入 `{{UPS_DIR}}/{slug}/persona.md`
+2. 参考 `${SKILL_DIR}/prompts/content_brain_builder.md` → 写入 `{{UPS_DIR}}/{slug}/content_brain.md`
+3. 参考 `${SKILL_DIR}/prompts/production_style_builder.md` → 写入 `{{UPS_DIR}}/{slug}/production_style.md`
+4. 参考 `${SKILL_DIR}/prompts/brand_guardrails_builder.md` → 写入 `{{UPS_DIR}}/{slug}/brand_guardrails.md`
 
 ### Step 5：合并生成组合 Skill
 
-参考 `${SKILL_DIR}/prompts/merger.md`，将四层合并为 `./ups/{slug}/SKILL.md`。
+参考 `${SKILL_DIR}/prompts/merger.md`，将四层合并为 `{{UPS_DIR}}/{slug}/SKILL.md`。
 
-同时写入 `./ups/{slug}/meta.json`：
+同时写入 `{{UPS_DIR}}/{slug}/meta.json`：
 
 ```json
 {
@@ -225,18 +225,3 @@ allowed-tools: Read, Write, Edit, Bash
 3. 生成纠错记录
 4. 用 `Edit` 工具追加到对应文件的 `## Correction 记录` 区块
 5. 重新生成 `SKILL.md`
-
----
-
-## 管理指令
-
-`/list-ups`:
-```bash
-uv run --directory ${SKILL_DIR} python3 tools/skill_writer.py --action list --base-dir ./ups
-```
-
-`/delete-up {slug}`:
-确认后执行：
-```bash
-rm -rf ups/{slug}
-```
