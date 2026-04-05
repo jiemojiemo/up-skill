@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -30,6 +31,12 @@ from cache_manager import clean_cache, clean_all_caches, list_cache_usage, remov
 from material_check import check_material_sufficiency
 
 CACHE_DIR = Path.home() / '.up-skill' / 'cache'
+
+# B 站反爬常用请求头，缺少时更容易触发 412 风控
+_BILIBILI_HEADERS = [
+    '--user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    '--add-header', 'Referer: https://www.bilibili.com',
+]
 
 _cookies_checked = False
 _cookies_ok = False
@@ -147,6 +154,7 @@ def download_subtitles(url: str, cache: Path, engine: str | None = None) -> list
         '--sub-format', 'srt/vtt/best',
         '--skip-download',
         '--cookies-from-browser', 'chrome',
+        *_BILIBILI_HEADERS,
         '--output', str(cache / '%(id)s.%(ext)s'),
         url
     ]
@@ -189,6 +197,7 @@ def download_and_transcribe(url: str, cache: Path, engine: str | None = None) ->
         'yt-dlp', '-f', 'worstaudio', '-x', '--audio-format', 'wav',
         '--postprocessor-args', 'ffmpeg:-ar 16000 -ac 1',
         '--cookies-from-browser', 'chrome',
+        *_BILIBILI_HEADERS,
         '-o', str(audio_path), url
     ]
     try:
@@ -252,6 +261,7 @@ async def async_download_subtitles(
         '--sub-format', 'srt/vtt/best',
         '--skip-download',
         '--cookies-from-browser', 'chrome',
+        *_BILIBILI_HEADERS,
         '--output', str(cache / '%(id)s.%(ext)s'),
         url
     ]
@@ -288,6 +298,7 @@ async def async_download_and_transcribe(
         'yt-dlp', '-f', 'worstaudio', '-x', '--audio-format', 'wav',
         '--postprocessor-args', 'ffmpeg:-ar 16000 -ac 1',
         '--cookies-from-browser', 'chrome',
+        *_BILIBILI_HEADERS,
         '-o', str(audio_path), url
     ]
     try:
@@ -370,22 +381,44 @@ async def async_collect_from_urls(
 # ── 模式 4：UP 主主页 → 批量 ──────────────────────────────────────────────────
 
 def list_space_videos(space_url: str) -> list[dict]:
-    """列出 UP 主主页的所有视频"""
+    """列出 UP 主主页的所有视频（带退避重试 + fallback 提示）"""
     _check_cookies()
     print(f'正在获取视频列表：{space_url}')
     cmd = [
         'yt-dlp', '--flat-playlist', '--dump-json',
         '--playlist-end', '500',  # 最多列 500 个
         '--cookies-from-browser', 'chrome',
+        *_BILIBILI_HEADERS,
         space_url
     ]
-    try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-    except FileNotFoundError:
-        print('❌ 未找到 yt-dlp', file=sys.stderr)
-        return []
-    except subprocess.CalledProcessError as e:
-        print(f'❌ 获取视频列表失败：{e}', file=sys.stderr)
+
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+            break
+        except FileNotFoundError:
+            print('❌ 未找到 yt-dlp', file=sys.stderr)
+            return []
+        except subprocess.CalledProcessError as e:
+            stderr = e.stderr or ''
+            is_412 = '412' in stderr
+            if attempt < max_retries and is_412:
+                wait = attempt * 5
+                print(f'⚠️  请求被 B 站拦截（412），{wait}s 后重试（{attempt}/{max_retries}）...')
+                time.sleep(wait)
+            else:
+                print(f'❌ 获取视频列表失败：{e}', file=sys.stderr)
+                if is_412:
+                    print(
+                        '\n💡 B 站主页列表被风控拦截（HTTP 412），可以尝试：\n'
+                        '   1. 用 --urls 直接提供视频链接，绕过主页列表抓取\n'
+                        '   2. 确认 Chrome 已登录 B 站，刷新 Cookie 后重试\n'
+                        '   3. 稍后再试（通常几分钟后风控会解除）',
+                        file=sys.stderr,
+                    )
+                return []
+    else:
         return []
 
     videos = []
