@@ -73,6 +73,47 @@ def create_skill(slug: str, name: str, base_dir: Path, meta: dict) -> Path:
     return skill_dir
 
 
+REQUIRED_FILES = ['persona.md', 'content_brain.md', 'production_style.md',
+                   'brand_guardrails.md', 'SKILL.md', 'meta.json']
+
+PLACEHOLDER_MARKER = '（待生成）'
+
+
+def validate_skill(skill_dir: Path) -> bool:
+    """验证 Skill 目录完整性，输出缺失/未完成的文件列表"""
+    if not skill_dir.exists():
+        print(f'❌ 目录不存在：{skill_dir}')
+        return False
+
+    ok = True
+    for fname in REQUIRED_FILES:
+        fpath = skill_dir / fname
+        if not fpath.exists():
+            print(f'❌ 缺少文件：{fname}')
+            ok = False
+        elif fpath.suffix == '.md':
+            content = fpath.read_text(encoding='utf-8')
+            if PLACEHOLDER_MARKER in content:
+                print(f'⚠️  文件未完成（仍含占位符）：{fname}')
+                ok = False
+        elif fname == 'meta.json':
+            try:
+                meta = json.loads(fpath.read_text(encoding='utf-8'))
+                for key in ('name', 'slug', 'version', 'created_at'):
+                    if not meta.get(key):
+                        print(f'⚠️  meta.json 缺少字段：{key}')
+                        ok = False
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f'❌ meta.json 格式错误：{e}')
+                ok = False
+
+    if ok:
+        print(f'✅ Skill 验证通过：{skill_dir.name}（{len(REQUIRED_FILES)} 个文件完整）')
+    else:
+        print(f'\n🔧 请补全以上缺失内容后重新验证')
+    return ok
+
+
 def bump_version(skill_dir: Path) -> str:
     """递增版本号，更新 meta.json 的 updated_at"""
     meta_path = skill_dir / 'meta.json'
@@ -130,7 +171,7 @@ def list_skills(base_dir: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description='UP 主 Skill 文件管理')
-    parser.add_argument('--action', choices=['create', 'list', 'version', 'archive'],
+    parser.add_argument('--action', choices=['create', 'list', 'version', 'archive', 'validate'],
                         required=True)
     parser.add_argument('--slug', help='UP 主 slug')
     parser.add_argument('--name', help='UP 主名字')
@@ -171,6 +212,14 @@ def main():
         skill_dir = base_dir / args.slug
         archive_dir = archive_version(skill_dir)
         print(f'已归档至 {archive_dir}')
+
+    elif args.action == 'validate':
+        if not args.slug:
+            print('错误：validate 需要 --slug', file=sys.stderr)
+            sys.exit(1)
+        skill_dir = base_dir / args.slug
+        if not validate_skill(skill_dir):
+            sys.exit(1)
 
 
 if __name__ == '__main__':

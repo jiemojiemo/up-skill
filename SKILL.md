@@ -47,6 +47,7 @@ allowed-tools: Read, Write, Edit, Bash
 | 解析 B 站字幕 JSON | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/subtitle_parser.py` |
 | 解析评论区导出 | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/comment_parser.py` |
 | 写入/更新 Skill 文件 | `Write` / `Edit` 工具 |
+| 验证 Skill 完整性 | `Bash` → `uv run --directory ${SKILL_DIR} python3 tools/skill_writer.py --action validate --slug {slug} --base-dir {{UPS_DIR}}` |
 | 列出已有 Skill | 使用独立 Skill `/list-ups` |
 
 **基础目录**：Skill 文件写入 `{{UPS_DIR}}/{slug}/`。
@@ -162,9 +163,17 @@ allowed-tools: Read, Write, Edit, Bash
 }
 ```
 
-### Step 6：确认与交付
+### Step 6：验证与交付
 
-生成完成后，展示用法示例：
+生成完成后，**必须先运行验证**：
+
+```bash
+uv run --directory ${SKILL_DIR} python3 tools/skill_writer.py --action validate --slug {slug} --base-dir {{UPS_DIR}}
+```
+
+如果验证不通过（输出含 ❌ 或 ⚠️），根据提示补全缺失文件后重新验证，直到看到 `✅ Skill 验证通过`。
+
+验证通过后，展示用法示例：
 
 ```
 ✅ {name} 的数字分身已生成！
