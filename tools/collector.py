@@ -340,7 +340,9 @@ async def async_collect_from_urls(
         await asr_queue.put(None)
     await asyncio.gather(*consumers)
 
-    print(f'\n✅ 共获取 {len(collected)} 个字幕文件')
+    print(f'\n{"="*60}')
+    print(f'✅ 采集完成：共获取 {len(collected)}/{total} 个字幕文件')
+    print(f'{"="*60}')
     return collected
 
 
@@ -444,7 +446,7 @@ def collect_from_space(space_url: str, slug: str, limit: int = 20, yes: bool = F
             n = min(20, total)
 
     selected = videos[:n]
-    print(f'\n开始处理 {n} 个视频...\n')
+    print(f'\n开始处理 {n} 个视频（请等待全部完成，中途进度不代表采集结束）...\n')
 
     urls = [v['url'] for v in selected]
     return collect_from_urls(urls, slug, engine=engine,
