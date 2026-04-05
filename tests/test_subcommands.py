@@ -1,10 +1,9 @@
 """
-tests/test_subcommands.py — 子命令精简的结构测试（TDD）
+tests/test_subcommands.py — 验证子命令已移除，改为自然语言用法
 
-验证 TODO #4 的三个要求：
-1. 删除 /{slug}-comment 和 /{slug}-live
-2. -brand 改名为 -check
-3. SKILL.md、README.md、merger.md 同步更新
+验证：
+1. 不存在 /{slug}-brainstorm、/{slug}-script、/{slug}-check 等假子命令
+2. SKILL.md、README.md、merger.md 均使用自然语言描述用法
 """
 
 import os
@@ -36,27 +35,28 @@ class TestSkillMdSubcommands:
         content = _read("SKILL.md")
         assert "/{slug}-brand" not in content
 
-    def test_HasCheckSubcommand(self):
+    def test_NoBrainstormSubcommand(self):
         content = _read("SKILL.md")
-        assert "-check" in content
+        assert "/{slug}-brainstorm" not in content
 
-    def test_HasExactlyFourSubcommands(self):
-        """确认交付列表只有 4 个子命令"""
+    def test_NoScriptSubcommand(self):
         content = _read("SKILL.md")
-        # 匹配 /{slug} 开头的行
-        lines = [l for l in content.splitlines() if re.search(r'/{slug}', l)]
-        # 去重（同一个子命令可能出现在列表和详细说明中）
-        slugs = set()
-        for l in lines:
-            m = re.search(r'/{slug}(-\w+)?', l)
-            if m:
-                slugs.add(m.group(0))
-        assert slugs == {"/{slug}", "/{slug}-brainstorm", "/{slug}-script", "/{slug}-check"}
+        assert "/{slug}-script" not in content
 
-    def test_CheckSectionDescription(self):
-        """/{slug}-check 的描述应包含'风格边界'"""
+    def test_NoCheckSubcommand(self):
         content = _read("SKILL.md")
-        assert "风格边界" in content
+        assert "/{slug}-check" not in content
+
+    def test_NoHyphenatedSubcommands(self):
+        """确认不存在任何 /{slug}-xxx 形式的子命令"""
+        content = _read("SKILL.md")
+        matches = re.findall(r'/{slug}-\w+', content)
+        assert matches == [], f"Found unexpected subcommands: {matches}"
+
+    def test_HasNaturalLanguageUsage(self):
+        """确认使用自然语言描述用法"""
+        content = _read("SKILL.md")
+        assert "自然语言" in content
 
 
 # ── README.md ────────────────────────────────────────────────────────────────
@@ -75,15 +75,28 @@ class TestReadmeSubcommands:
         content = _read("README.md")
         assert "/{slug}-brand" not in content
 
-    def test_HasCheckInReadme(self):
+    def test_NoBrainstormInReadme(self):
         content = _read("README.md")
-        assert "/{slug}-check" in content
+        assert "/{slug}-brainstorm" not in content
 
-    def test_ReadmeSaysFourWays(self):
-        """README 应该说四种方式，不是六种"""
+    def test_NoScriptInReadme(self):
         content = _read("README.md")
-        assert "六" not in content
-        assert "四" in content
+        assert "/{slug}-script" not in content
+
+    def test_NoCheckInReadme(self):
+        content = _read("README.md")
+        assert "/{slug}-check" not in content
+
+    def test_NoHyphenatedSubcommandsInReadme(self):
+        """确认 README 中不存在任何 /{slug}-xxx 形式的子命令"""
+        content = _read("README.md")
+        matches = re.findall(r'/{slug}-\w+', content)
+        assert matches == [], f"Found unexpected subcommands: {matches}"
+
+    def test_HasUsageExamples(self):
+        """README 应该有用法示例"""
+        content = _read("README.md")
+        assert "/bidao" in content
 
 
 # ── merger.md ────────────────────────────────────────────────────────────────
@@ -95,10 +108,23 @@ class TestMergerSubcommands:
         assert "`comment`" not in content
 
     def test_NoBrandCheckOldName(self):
-        """brand-check 应改为 check"""
+        """brand-check 应已移除"""
         content = _read("prompts/merger.md")
         assert "brand-check" not in content
 
-    def test_HasCheckInMerger(self):
+    def test_NoBrainstormInMerger(self):
         content = _read("prompts/merger.md")
-        assert "check" in content
+        assert "`brainstorm`" not in content
+
+    def test_NoScriptInMerger(self):
+        content = _read("prompts/merger.md")
+        assert "`script`" not in content
+
+    def test_NoCheckInMerger(self):
+        content = _read("prompts/merger.md")
+        assert "`check`" not in content
+
+    def test_HasNaturalLanguageInMerger(self):
+        """merger 模板应使用自然语言描述"""
+        content = _read("prompts/merger.md")
+        assert "自然语言" in content

@@ -21,10 +21,10 @@ allowed-tools: Read, Write, Edit, Bash
 - "给我做一个 XX 的 skill"
 
 ### 激活模式（对话内调用已生成的 UP 主）
-当用户说 `/{slug}` 或 `/{slug}-brainstorm` / `/{slug}-script` / `/{slug}-check` 时：
+当用户说 `/{slug}` 或 `/{slug} + 任意自然语言` 时：
 1. 在 `{{UPS_DIR}}/` 目录下查找 `{slug}/SKILL.md`
 2. 如果找到，用 `Read` 工具读取该 SKILL.md 的完整内容
-3. 将内容注入当前对话上下文，按照 SKILL.md 中的角色设定和子 Skill 行为规范运行
+3. 将内容注入当前对话上下文，根据用户的自然语言意图自动匹配对应行为（聊天、选题、写脚本、风格检查等）
 4. 如果未找到，提示用户该 UP 主尚未生成，建议运行 `/create-up`
 
 ### 进化模式
@@ -154,29 +154,32 @@ allowed-tools: Read, Write, Edit, Bash
 
 ### Step 6：确认与交付
 
-生成完成后，展示可用的子 Skill 列表：
+生成完成后，展示用法示例：
 
 ```
-✅ {name} 的数字分身已生成，可用指令：
+✅ {name} 的数字分身已生成！
 
-  /{slug}              → 像他聊天（陪伴/问答）
-  /{slug}-brainstorm   → 像他做选题会
-  /{slug}-script       → 像他写口播脚本
-  /{slug}-check        → 检查内容是否符合他的风格边界
+用 /{slug} 调用，直接说你想做什么：
+
+  /{slug} 最近有什么热点可以做？
+  /{slug} 帮我写一期关于 XX 的口播脚本
+  /{slug} 帮我看看这个标题行不行：《XXX》
 ```
 
 ---
 
-## 子 Skill 行为规范
+## 能力说明
 
-### /{slug}（陪伴聊天）
+激活后，分身根据用户的自然语言意图自动匹配对应行为：
 
-激活后，完全以该 UP 主的 Persona 层运行：
+### 聊天/问答
+
+完全以该 UP 主的 Persona 层运行：
 - 用他的口头禅、语气、节奏回复
 - 遇到不在 Content Brain 范围内的话题，用他的方式回避或表态
 - 不跳出角色，不说"作为 AI"
 
-### /{slug}-brainstorm（选题会）
+### 选题分析
 
 输入：一个方向/关键词/热点
 输出：
@@ -185,7 +188,7 @@ allowed-tools: Read, Write, Edit, Bash
 3. 3 个他风格的标题候选
 4. 开头 hook 怎么下
 
-### /{slug}-script（口播脚本）
+### 写口播脚本
 
 输入：选题 + 核心观点
 输出：按他的 Production Style 写一版口播脚本，包含：
@@ -193,7 +196,7 @@ allowed-tools: Read, Write, Edit, Bash
 - 主体结构（分段 + 金句密度）
 - 结尾 CTA
 
-### /{slug}-check（风格边界检查）
+### 风格边界检查
 
 输入：一段文案/脚本/标题
 输出：
